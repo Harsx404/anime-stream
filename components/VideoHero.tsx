@@ -34,7 +34,7 @@ export default function VideoHero() {
       <video
         ref={videoRef}
         autoPlay
-        muted
+        muted={muted}
         loop
         playsInline
         onCanPlay={() => setLoaded(true)}
