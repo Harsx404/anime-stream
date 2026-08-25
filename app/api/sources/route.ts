@@ -1,11 +1,35 @@
 import { NextResponse } from "next/server";
 import { getMiruroSources, getMiruroProvider, getMiruroEpisodes } from "@/lib/miruro-server";
+import { INTERNAL_FALLBACK_HEADER, siblingOrigin } from "@/lib/deploy-origins";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const PROVIDER_FALLBACK = ["ally", "kiwi", "bonk", "pewe", "bee", "hop"];
+
+// See app/api/episodes/[anilistId]/route.ts for why this exists: Miruro's
+// Cloudflare protection can block one deployment's IP range while the other
+// still gets through, so try the sibling once before reporting failure.
+async function fetchFromSibling(req: Request) {
+  if (req.headers.get(INTERNAL_FALLBACK_HEADER)) return null;
+  const origin = siblingOrigin();
+  if (!origin) return null;
+
+  try {
+    const { search } = new URL(req.url);
+    const res = await fetch(`${origin}/api/sources${search}`, {
+      headers: { [INTERNAL_FALLBACK_HEADER]: "1" },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data?.sources?.length) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -30,8 +54,11 @@ export async function GET(req: Request) {
     }
   }
 
-  if (!prov)
+  if (!prov) {
+    const fallback = await fetchFromSibling(req);
+    if (fallback) return NextResponse.json(fallback);
     return NextResponse.json({ error: "No provider available" }, { status: 404 });
+  }
 
   // Try the requested provider first with the given episodeId
   try {
@@ -85,6 +112,9 @@ export async function GET(req: Request) {
       }
     }
   }
+
+  const fallback = await fetchFromSibling(req);
+  if (fallback) return NextResponse.json(fallback);
 
   return NextResponse.json({ error: "No sources found from any provider" }, { status: 404 });
 }
