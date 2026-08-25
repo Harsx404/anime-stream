@@ -476,7 +476,7 @@ export default function CineplayWatchClient({
     const applySubtitles = () => {
       for (let i = 0; i < video.textTracks.length; i++) {
         video.textTracks[i].mode =
-          result?.subtitles?.length && i === activeSub ? "showing" : "disabled";
+          allSubtitles.length > 0 && i === activeSub ? "showing" : "disabled";
       }
     };
     
@@ -624,7 +624,7 @@ export default function CineplayWatchClient({
               kind="subtitles"
               label={i >= (result?.subtitles?.length || 0) ? `${sub.label || sub.language} (OS)` : (sub.label || sub.language)}
               srcLang={sub.language}
-              src={i === activeSub ? `/api/sub-proxy?url=${encodeURIComponent(sub.url)}` : undefined}
+              src={`/api/sub-proxy?url=${encodeURIComponent(sub.url)}`}
               default={i === activeSub}
             />
           ))}
