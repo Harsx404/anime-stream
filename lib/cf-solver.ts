@@ -27,12 +27,19 @@ interface SolvedChallenge {
 const COOKIE_TTL_MS = 25 * 60 * 1000;
 const CHALLENGE_URL = "https://www.miruro.ru/";
 
+// If a solve attempt fails, don't retry on every subsequent request — that
+// would launch a full Chromium instance per request for a known-bad state.
+// Back off for a while first.
+const FAILURE_COOLDOWN_MS = 10 * 60 * 1000;
+
 let cached: SolvedChallenge | null = null;
+let lastFailureAt = 0;
 let inFlight: Promise<SolvedChallenge | null> | null = null;
 
 export async function getCloudflareCookie(): Promise<SolvedChallenge | null> {
   if (!CF_SOLVER_ENABLED) return null;
   if (cached && Date.now() < cached.expiresAt) return cached;
+  if (lastFailureAt && Date.now() - lastFailureAt < FAILURE_COOLDOWN_MS) return null;
   if (inFlight) return inFlight;
 
   inFlight = solve().finally(() => {
@@ -87,6 +94,7 @@ async function solve(): Promise<SolvedChallenge | null> {
       console.error(
         `[CF Solver] No cf_clearance after solve attempt. title="${lastTitle}" url="${page.url()}" cookies=[${cookies.map((c) => c.name).join(",")}]`,
       );
+      lastFailureAt = Date.now();
       return null;
     }
 
@@ -100,6 +108,7 @@ async function solve(): Promise<SolvedChallenge | null> {
     return result;
   } catch (e) {
     console.error("[CF Solver] Failed:", String(e));
+    lastFailureAt = Date.now();
     return null;
   } finally {
     if (browser) await browser.close().catch(() => {});
