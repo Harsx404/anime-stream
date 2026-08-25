@@ -1,27 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import {
+  fetchMiruroEpisodes,
+  fetchMiruroSources,
+  type ClientMiruroEpisode,
+  type ClientProviderInfo,
+  type ClientMiruroSource,
+  type ClientMiruroSub,
+} from "@/lib/miruro-client";
 
-export interface MiruroEpisode {
-  id: string;
-  number: number;
-  title?: string;
-  image?: string;
-  description?: string;
-  filler?: boolean;
-  hasDub?: boolean;
-  duration?: number;
-  airDate?: string;
-}
-
-export interface ProviderInfo {
-  name: string;
-  hasSub: boolean;
-  hasDub: boolean;
-  episodeCount: number;
-  subCount: number;
-  dubCount: number;
-}
+export type MiruroEpisode = ClientMiruroEpisode;
+export type ProviderInfo = ClientProviderInfo;
 
 export function useMiruroEpisodes(
   anilistId: number,
@@ -43,19 +33,10 @@ export function useMiruroEpisodes(
       setEpisodes([]);
       setProviders([]);
       try {
-        const params = new URLSearchParams();
-        if (provider) params.set("provider", provider);
-        if (category) params.set("category", category);
-        const qs = params.toString();
-        const res = await fetch(`/api/episodes/${anilistId}${qs ? `?${qs}` : ""}`);
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || `HTTP ${res.status}`);
-        }
-        const data = await res.json();
+        const data = await fetchMiruroEpisodes(anilistId, provider, category);
         if (cancelled) return;
-        setEpisodes(data.episodes || []);
-        setProviders(data.providers || []);
+        setEpisodes(data.episodes);
+        setProviders(data.providers);
       } catch (e) {
         if (cancelled) return;
         setError(e instanceof Error ? e.message : "Failed to load episodes");
@@ -70,18 +51,10 @@ export function useMiruroEpisodes(
   return { episodes, providers, loading, error };
 }
 
-export interface NormalizedSource {
-  url: string;
-  quality: string;
-  isM3U8: boolean;
-  referer?: string;
-  type: string;
-  default?: boolean;
-}
-
+export interface NormalizedSource extends ClientMiruroSource {}
 export interface NormalizedSources {
-  sources: NormalizedSource[];
-  subs: { url: string; lang: string }[];
+  sources: ClientMiruroSource[];
+  subs: ClientMiruroSub[];
   download?: { url: string; label?: string }[];
 }
 
@@ -104,15 +77,12 @@ export function useMiruroSources(
       setError("");
       setSources(null);
       try {
-        const params = new URLSearchParams({ episodeId, anilistId: String(anilistId) });
-        if (provider) params.set("provider", provider);
-        if (category) params.set("category", category);
-        const res = await fetch(`/api/sources?${params.toString()}`);
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || `HTTP ${res.status}`);
-        }
-        const data: NormalizedSources = await res.json();
+        const data = await fetchMiruroSources(
+          episodeId,
+          provider || "",
+          category || "sub",
+          anilistId,
+        );
         if (cancelled) return;
         setSources(data);
       } catch (e) {
