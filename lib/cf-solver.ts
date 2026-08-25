@@ -4,14 +4,17 @@
 // serverless-sized headless Chromium to solve the challenge once, then hands
 // the resulting cf_clearance cookie back to wreq-js for the actual API call.
 //
-// Off by default — launching a browser is far heavier (memory, cold-start
-// time, and on Vercel's usage-based Fluid compute, cost) than a plain fetch.
-// Enable explicitly with ENABLE_CF_SOLVER=1 once you've confirmed your plan/
-// budget can absorb it. Only runs on Vercel (process.env.VERCEL === "1") —
-// Render's free tier (512MB RAM) is too small to launch Chromium reliably.
+// On by default on Vercel — launching a browser is far heavier (memory,
+// cold-start time, and on Vercel's usage-based Fluid compute, real cost)
+// than a plain fetch, but it only fires after every TLS-spoofed profile has
+// already failed with a confirmed Cloudflare challenge, so normal requests
+// are unaffected. If usage/cost becomes a problem, set DISABLE_CF_SOLVER=1
+// to turn it back off without touching code. Only runs on Vercel
+// (process.env.VERCEL === "1") — Render's free tier (512MB RAM) is too
+// small to launch Chromium reliably.
 
 export const CF_SOLVER_ENABLED =
-  process.env.ENABLE_CF_SOLVER === "1" && process.env.VERCEL === "1";
+  process.env.DISABLE_CF_SOLVER !== "1" && process.env.VERCEL === "1";
 
 interface SolvedChallenge {
   cookie: string;
