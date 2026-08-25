@@ -102,6 +102,32 @@ export default function CineplayWatchClient({
   const [audioTracks, setAudioTracks] = useState<{ id: number; label: string }[]>([]);
   const [activeAudio, setActiveAudio] = useState(0);
   const [subtitleConfig, setSubtitleConfig] = useState<SubtitleConfig>(() => loadSubtitleConfig());
+  const [osSubtitles, setOsSubtitles] = useState<VideasySubtitle[]>([]);
+  const [osSearching, setOsSearching] = useState(false);
+  const [osSearched, setOsSearched] = useState(false);
+
+  const searchOpenSubtitles = useCallback(async () => {
+    if (osSearching || osSearched) return;
+    setOsSearching(true);
+    try {
+      const params = new URLSearchParams({ tmdbId: String(tmdbId), mediaType });
+      if (mediaType === "tv") {
+        params.set("season", String(season || 1));
+        params.set("episode", String(episode || 1));
+      }
+      if (imdbId) params.set("imdbId", imdbId);
+      const resp = await fetch(`/api/opensubtitles?${params.toString()}`);
+      const data = await resp.json();
+      if (data.success && data.subtitles?.length > 0) {
+        setOsSubtitles(data.subtitles.map((s: { url: string; language: string; label: string }) => ({ url: s.url, language: s.language, label: s.label })));
+      }
+    } catch {
+      // silent fail
+    } finally {
+      setOsSearching(false);
+      setOsSearched(true);
+    }
+  }, [tmdbId, mediaType, season, episode, imdbId, osSearching, osSearched]);
 
   const progressKey = mediaType === "tv" ? { season, episode } : {};
   const savedProgress = typeof window !== "undefined"
@@ -202,6 +228,8 @@ export default function CineplayWatchClient({
       setResult(null);
       setHlsQualityOptions([]);
       setSelectedHlsLevel(-1);
+      setOsSubtitles([]);
+      setOsSearched(false);
 
       const allProviders = ["VIDEASY", "VidLink", "VixSrc", "ZxcStreams", "HDGharTV", "4KHDHub"];
       const chain =
@@ -539,20 +567,31 @@ export default function CineplayWatchClient({
     });
   }
 
-  if (result?.subtitles && result.subtitles.length > 0) {
+  const allSubtitles: VideasySubtitle[] = [
+    ...(result?.subtitles || []),
+    ...osSubtitles,
+  ];
+
+  if (allSubtitles.length > 0) {
     settingsGroups.push({
       label: "Subtitles",
       options: [
         { id: "-1", label: "Off", active: activeSub === -1 },
-        ...result.subtitles.map((s, i) => ({
+        ...allSubtitles.map((s, i) => ({
           id: String(i),
-          label: s.label || s.language,
+          label: i >= (result?.subtitles?.length || 0) ? `${s.label || s.language} (OS)` : (s.label || s.language),
           active: activeSub === i,
         })),
       ],
       onSelect: (id) => selectSubtitle(Number(id)),
     });
   }
+
+  settingsGroups.push({
+    label: osSearching ? "Searching OpenSubtitles..." : osSearched ? (osSubtitles.length > 0 ? `OpenSubtitles (${osSubtitles.length} found)` : "OpenSubtitles (none found)") : "OpenSubtitles Search",
+    options: [{ id: "os-search", label: osSearching ? "Searching..." : "Search for this title", active: osSearching }],
+    onSelect: () => { void searchOpenSubtitles(); },
+  });
 
   const nextEpisodeData = seasonEpisodes?.find((e) => e.episode_number === (episode || 0) + 1);
   const nextEpisode =
@@ -579,11 +618,11 @@ export default function CineplayWatchClient({
           playsInline
           poster={poster}
         >
-          {result?.subtitles?.map((sub, i) => (
+          {allSubtitles.map((sub, i) => (
             <track
               key={i}
               kind="subtitles"
-              label={sub.label || sub.language}
+              label={i >= (result?.subtitles?.length || 0) ? `${sub.label || sub.language} (OS)` : (sub.label || sub.language)}
               srcLang={sub.language}
               src={i === activeSub ? `/api/sub-proxy?url=${encodeURIComponent(sub.url)}` : undefined}
               default={i === activeSub}
