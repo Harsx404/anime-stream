@@ -120,12 +120,12 @@ async function pipeGet(
   let profileUsed = "";
 
   for (const profile of BROWSER_PROFILES) {
-    for (let attempt = 0; attempt < 2; attempt++) {
+    for (let attempt = 0; attempt < 3; attempt++) {
       try {
         resp = await fetchFn(url, {
           browser: profile,
           headers: headersForProfile(profile),
-          timeout: 15000,
+          timeout: 10000,
         });
       } catch (e: any) {
         lastError = `wreq-js error with ${profile}: ${String(e)}`;
@@ -223,15 +223,24 @@ export interface MiruroSourcesResponse {
 
 // --- Public API ---
 
+const episodesCache = new Map<number, { data: MiruroEpisodesResponse | null; ts: number }>();
+const EPISODES_CACHE_TTL = 60000; // 1 minute
+
 export async function getMiruroEpisodes(
   anilistId: number,
 ): Promise<MiruroEpisodesResponse | null> {
+  const cached = episodesCache.get(anilistId);
+  if (cached && Date.now() - cached.ts < EPISODES_CACHE_TTL) {
+    return cached.data;
+  }
   try {
     const data = await pipeGet("episodes", { anilistId: String(anilistId) });
     console.log(`[Miruro] Episodes for ${anilistId}: providers=${Object.keys(data?.providers || {}).join(",") || "none"}`);
+    episodesCache.set(anilistId, { data, ts: Date.now() });
     return data;
   } catch (e) {
     console.error(`[Miruro] Episodes error for ${anilistId}:`, String(e));
+    episodesCache.set(anilistId, { data: null, ts: Date.now() });
     return null;
   }
 }
@@ -255,7 +264,7 @@ export async function getMiruroSources(
   }
 }
 
-const PROVIDER_PRIORITY = ["bonk", "kiwi", "ally", "pewe", "bee", "hop"];
+const PROVIDER_PRIORITY = ["ally", "kiwi", "bonk", "pewe", "bee", "hop"];
 
 export interface ProviderInfo {
   name: string;

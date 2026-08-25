@@ -129,6 +129,13 @@ export default function CineplayWatchClient({
     }
   }, [tmdbId, mediaType, season, episode, imdbId, osSearching, osSearched]);
 
+  // Auto-search OpenSubtitles when provider returns no subtitles
+  useEffect(() => {
+    if (result && (!result.subtitles || result.subtitles.length === 0) && !osSearched && !osSearching) {
+      void searchOpenSubtitles();
+    }
+  }, [result, osSearched, osSearching, searchOpenSubtitles]);
+
   const progressKey = mediaType === "tv" ? { season, episode } : {};
   const savedProgress = typeof window !== "undefined"
     ? getProgressFor(mediaType, tmdbId, mediaType === "tv" ? episode : undefined, mediaType === "tv" ? season : undefined)

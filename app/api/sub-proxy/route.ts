@@ -118,6 +118,7 @@ export async function GET(req: Request) {
       "keenanchor.top": "https://www.vidking.net/",
       "vidlink.pro": "https://vidlink.pro/",
       "vixsrc.to": "https://vixsrc.to/",
+      "cdn.watching.onl": "https://megaplay.buzz/",
     };
     let refererSet = false;
     for (const [domain, ref] of Object.entries(DOMAIN_REFERER_MAP)) {
@@ -143,14 +144,24 @@ export async function GET(req: Request) {
 
     let resp: Response | null = null;
     let lastError: any = null;
-    const maxRetries = 3;
+    const maxRetries = 2;
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        resp = await dnsFetch(decoded, {
-          headers,
-          cache: "no-store",
-        });
+        try {
+          resp = await dnsFetch(decoded, {
+            headers,
+            cache: "no-store",
+            signal: AbortSignal.timeout(8000),
+          });
+        } catch {
+          // dnsFetch may fail on deployed servers (serverless/edge) — fall back to regular fetch
+          resp = await fetch(decoded, {
+            headers,
+            cache: "no-store",
+            signal: AbortSignal.timeout(8000),
+          });
+        }
 
         if (resp.ok || resp.status < 500) {
           break; // Success or expected non-retryable error (like 404, 403)

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMiruroEpisodes } from "@/lib/use-miruro";
+import { useAnimeEpisodes } from "@/lib/use-anime";
 import DetailRail from "@/components/DetailRail";
 
 interface Props {
@@ -9,7 +9,7 @@ interface Props {
 }
 
 export default function AnimeEpisodeRail({ anilistId, fallbackImage }: Props) {
-  const { episodes, loading } = useMiruroEpisodes(anilistId);
+  const { episodes, loading } = useAnimeEpisodes(anilistId, "miruro");
 
   if (loading || episodes.length === 0) return null;
 

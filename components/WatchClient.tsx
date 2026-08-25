@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import type { Anime } from "@/lib/anilist";
-import { useMiruroEpisodes, type MiruroEpisode } from "@/lib/use-miruro";
+import { useAnimeEpisodes, type MiruroEpisode, type SourceBackend, ALL_BACKENDS, BACKEND_LABELS } from "@/lib/use-anime";
 import VideoPlayer from "@/components/VideoPlayer";
 import EpisodeSidebar from "@/components/watch/EpisodeSidebar";
 import ServerSelector from "@/components/watch/ServerSelector";
@@ -20,15 +20,22 @@ interface Props {
 }
 
 export default function WatchClient({ anilistId, episode, anime }: Props) {
+  const [selectedBackend, setSelectedBackend] = useState<SourceBackend>("miruro");
   const [selectedProvider, setSelectedProvider] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<"sub" | "dub">("sub");
   const [isTheater, setIsTheater] = useState(false);
 
+  function handleBackendChange(backend: SourceBackend) {
+    setSelectedBackend(backend);
+    setSelectedProvider("");
+  }
+
   const effectiveProvider = selectedProvider || undefined;
   const effectiveCategory = selectedCategory;
 
-  const { episodes, providers, loading, error } = useMiruroEpisodes(
+  const { episodes, providers, loading, error } = useAnimeEpisodes(
     anilistId,
+    selectedBackend,
     effectiveProvider,
     effectiveCategory,
   );
@@ -42,7 +49,7 @@ export default function WatchClient({ anilistId, episode, anime }: Props) {
   const episodeId = currentEp?.id || "";
   const totalEps = episodes.length || anime.episodes || 1;
 
-  const showServerSelector = providers.length > 1;
+  const showServerSelector = providers.length > 1 || ALL_BACKENDS.length > 1;
 
   const title = anime.title.english || anime.title.romaji;
   const episodeLabel = `Episode ${episode}${currentEp?.title ? ` - ${currentEp.title}` : ""}`;
@@ -88,7 +95,7 @@ export default function WatchClient({ anilistId, episode, anime }: Props) {
       <div className={`watch-main-grid${isTheater ? " theater-mode" : ""}`}>
         <div className="watch-player-column">
           <VideoPlayer
-            key={episodeId}
+            key={`${selectedBackend}-${episodeId}`}
             episodeId={episodeId}
             episode={episode}
             anilistId={anilistId}
@@ -99,6 +106,7 @@ export default function WatchClient({ anilistId, episode, anime }: Props) {
             posterUrl={currentEp?.image || anime.bannerImage || anime.coverImage.large}
             nextEpisodeTitle={nextEp?.title}
             nextEpisodeThumbnail={nextEp?.image}
+            backend={selectedBackend}
             provider={effectiveProvider}
             category={effectiveCategory}
             isTheater={isTheater}
@@ -124,8 +132,10 @@ export default function WatchClient({ anilistId, episode, anime }: Props) {
             {showServerSelector && (
               <ServerSelector
                 providers={providers}
+                selectedBackend={selectedBackend}
                 selectedProvider={selectedProvider || providers[0]?.name || ""}
                 selectedCategory={selectedCategory}
+                onBackendChange={handleBackendChange}
                 onProviderChange={setSelectedProvider}
                 onCategoryChange={setSelectedCategory}
               />

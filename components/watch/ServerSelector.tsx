@@ -1,27 +1,29 @@
 "use client";
 
-import type { ProviderInfo } from "@/lib/use-miruro";
+import type { ProviderInfo, SourceBackend } from "@/lib/use-anime";
+import { ALL_BACKENDS, BACKEND_LABELS } from "@/lib/use-anime";
 
 interface ServerSelectorProps {
   providers: ProviderInfo[];
+  selectedBackend: SourceBackend;
   selectedProvider: string;
   selectedCategory: "sub" | "dub";
+  onBackendChange: (backend: SourceBackend) => void;
   onProviderChange: (provider: string) => void;
   onCategoryChange: (category: "sub" | "dub") => void;
 }
 
 export default function ServerSelector({
   providers,
+  selectedBackend,
   selectedProvider,
   selectedCategory,
+  onBackendChange,
   onProviderChange,
   onCategoryChange,
 }: ServerSelectorProps) {
-  if (!providers || providers.length <= 1) return null;
-
   const hasSub = providers.some((p) => p.hasSub);
   const hasDub = providers.some((p) => p.hasDub);
-  const showCategoryTabs = hasSub && hasDub;
 
   const availableProviders = providers.filter(
     (p) => selectedCategory === "dub" ? p.hasDub : p.hasSub,
@@ -29,33 +31,52 @@ export default function ServerSelector({
 
   return (
     <div className="server-selector">
-      {showCategoryTabs && (
-        <div className="server-category-tabs">
+      {/* Source backend switcher */}
+      <div className="server-backend-tabs">
+        {ALL_BACKENDS.map((b) => (
           <button
-            className={`server-tab${selectedCategory === "sub" ? " is-active" : ""}`}
-            onClick={() => onCategoryChange("sub")}
+            key={b}
+            className={`server-tab${selectedBackend === b ? " is-active" : ""}`}
+            onClick={() => onBackendChange(b)}
           >
-            SUB
-          </button>
-          <button
-            className={`server-tab${selectedCategory === "dub" ? " is-active" : ""}`}
-            onClick={() => onCategoryChange("dub")}
-          >
-            DUB
-          </button>
-        </div>
-      )}
-      <div className="server-pills">
-        {availableProviders.map((p) => (
-          <button
-            key={p.name}
-            className={`server-pill${selectedProvider === p.name ? " is-active" : ""}`}
-            onClick={() => onProviderChange(p.name)}
-          >
-            {p.name}
+            {BACKEND_LABELS[b]}
           </button>
         ))}
       </div>
+
+      {(hasSub || hasDub) && (
+        <div className="server-category-tabs">
+          {hasSub && (
+            <button
+              className={`server-tab${selectedCategory === "sub" ? " is-active" : ""}`}
+              onClick={() => onCategoryChange("sub")}
+            >
+              SUB
+            </button>
+          )}
+          {hasDub && (
+            <button
+              className={`server-tab${selectedCategory === "dub" ? " is-active" : ""}`}
+              onClick={() => onCategoryChange("dub")}
+            >
+              DUB
+            </button>
+          )}
+        </div>
+      )}
+      {availableProviders.length > 0 && (
+        <div className="server-pills">
+          {availableProviders.map((p) => (
+            <button
+              key={p.name}
+              className={`server-pill${selectedProvider === p.name ? " is-active" : ""}`}
+              onClick={() => onProviderChange(p.name)}
+            >
+              {p.name}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -53,11 +53,12 @@ export async function GET(req: Request) {
     }
   }
 
-  // Source 3: OpenSubtitles (always try as fallback if we have imdbId)
-  if (subtitles.length === 0 && imdbId) {
+  // Source 3: OpenSubtitles (always try as fallback — tmdbId is enough to auto-fetch imdbId)
+  if (subtitles.length === 0) {
     try {
       const osResults = await searchOpenSubtitles({
         imdbId,
+        tmdbId,
         mediaType,
         season,
         episode,

@@ -11,6 +11,7 @@ import {
   RefreshCw,
   Trophy,
   CircleDot,
+  Play,
 } from "lucide-react";
 import type { SportsMatch, SportCategory, GroupedMatches } from "@/lib/sports";
 import {
@@ -249,9 +250,13 @@ function MatchCard({
   const homeName = match.teams?.home?.name || match.title.split(" vs ")[0] || match.title;
   const awayName = match.teams?.away?.name || match.title.split(" vs ")[1] || "";
   const isLive = variant === "live";
+  const hasStreams = match.sources.length > 0;
+  const watchUrl = hasStreams
+    ? `/sports/watch?source=${encodeURIComponent(match.sources[0].source)}&id=${encodeURIComponent(match.sources[0].id)}&title=${encodeURIComponent(match.title)}`
+    : null;
 
-  return (
-    <div className={`sports-card${isLive ? " sports-card--live" : ""}`}>
+  const cardContent = (
+    <>
       {/* Top bar: sport + status */}
       <div className="sports-card-top">
         <span className="sports-card-sport">{match.category}</span>
@@ -342,6 +347,26 @@ function MatchCard({
           <span>POPULAR</span>
         </div>
       )}
+
+      {hasStreams && (
+        <div className="sports-card-play-overlay">
+          <Play size={24} fill="currentColor" />
+        </div>
+      )}
+    </>
+  );
+
+  if (watchUrl) {
+    return (
+      <a href={watchUrl} className={`sports-card sports-card--link${isLive ? " sports-card--live" : ""}`}>
+        {cardContent}
+      </a>
+    );
+  }
+
+  return (
+    <div className={`sports-card${isLive ? " sports-card--live" : ""}`}>
+      {cardContent}
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import type { Level } from "hls.js";
 import { getWatchProgress, updatePlaybackPosition } from "@/lib/history";
-import { useMiruroSources } from "@/lib/use-miruro";
+import { useAnimeSources, type SourceBackend } from "@/lib/use-anime";
 import PlayerChrome, { type SettingsGroup } from "@/components/player/PlayerChrome";
 import { type SubtitleConfig, loadSubtitleConfig, saveSubtitleConfig, applySubtitleConfig } from "@/lib/subtitle-config";
 
@@ -18,6 +18,7 @@ interface Props {
   posterUrl?: string;
   nextEpisodeTitle?: string;
   nextEpisodeThumbnail?: string;
+  backend?: SourceBackend;
   provider?: string;
   category?: "sub" | "dub";
   isTheater?: boolean;
@@ -57,6 +58,7 @@ export default function VideoPlayer({
   posterUrl,
   nextEpisodeTitle,
   nextEpisodeThumbnail,
+  backend = "miruro",
   provider,
   category,
   isTheater = false,
@@ -76,7 +78,7 @@ export default function VideoPlayer({
   const lastSaveRef = useRef<number>(0);
 
   const { sources, loading: sourcesLoading, error: sourcesError } =
-    useMiruroSources(episodeId, anilistId, provider, category);
+    useAnimeSources(episodeId, anilistId, backend, provider, category, episode);
 
   const [activeQuality, setActiveQuality] = useState(0);
   const [activeSub, setActiveSub] = useState(0);
@@ -101,16 +103,29 @@ export default function VideoPlayer({
 
   useEffect(() => {
     if (!sources) return;
-    const defaultIdx = sources.sources.findIndex((s) => s.default);
-    const firstHlsIdx = sources.sources.findIndex((s) => s.isM3U8);
-    setActiveQuality(defaultIdx >= 0 ? defaultIdx : firstHlsIdx >= 0 ? firstHlsIdx : 0);
+    // Prioritize: default source > first HLS > first MP4 > first non-embed
+    const defaultIdx = sources.sources.findIndex((s) => s.default && s.type !== "embed");
+    const firstHlsIdx = sources.sources.findIndex((s) => s.isM3U8 && s.type !== "embed");
+    const firstMp4Idx = sources.sources.findIndex((s) => s.type === "mp4");
+    const firstPlayable = sources.sources.findIndex((s) => s.type !== "embed");
+    setActiveQuality(
+      defaultIdx >= 0 ? defaultIdx :
+      firstHlsIdx >= 0 ? firstHlsIdx :
+      firstMp4Idx >= 0 ? firstMp4Idx :
+      firstPlayable >= 0 ? firstPlayable : 0
+    );
   }, [sources]);
 
-  const activeSourceUrl = sources?.sources?.[activeQuality]?.url ?? "";
-  const activeReferer = sources?.sources?.[activeQuality]?.referer ?? "";
+  const activeSource = sources?.sources?.[activeQuality];
+  const activeSourceUrl = activeSource?.url ?? "";
+  const activeReferer = activeSource?.referer ?? "";
+  const activeType = activeSource?.type ?? "";
+  const activeIsM3U8 = activeSource?.isM3U8 ?? false;
 
   const playbackUrl = useMemo(() => {
     if (!activeSourceUrl) return "";
+    // Proxy all sources through /api/hls (adds CORS headers, rewrites HLS manifests)
+    // crossOrigin="anonymous" on the video element requires CORS headers
     const params = new URLSearchParams({ url: activeSourceUrl });
     if (activeReferer) params.set("referer", activeReferer);
     return `/api/hls?${params.toString()}`;
@@ -177,6 +192,28 @@ export default function VideoPlayer({
     video.addEventListener("waiting", handleWaiting);
     video.addEventListener("playing", handlePlaying);
 
+    // Direct MP4 playback — no need for hls.js
+    const isDirectMp4 = activeType === "mp4" || (playbackUrl.includes(".mp4") && !activeIsM3U8);
+    if (isDirectMp4) {
+      video.src = playbackUrl;
+      video.onloadeddata = startPlayback;
+      video.oncanplay = startPlayback;
+      video.play().catch(() => null);
+      return () => {
+        aborted = true;
+        if (playbackUrlRef.current === playbackUrl) {
+          playbackUrlRef.current = "";
+          video.onloadeddata = null;
+          video.oncanplay = null;
+        }
+        video.removeEventListener("progress", startPlayback);
+        video.removeEventListener("canplay", startPlayback);
+        video.removeEventListener("loadeddata", startPlayback);
+        video.removeEventListener("waiting", handleWaiting);
+        video.removeEventListener("playing", handlePlaying);
+      };
+    }
+
     import("hls.js").then(({ default: Hls }) => {
       if (aborted || playbackUrlRef.current !== playbackUrl) return;
       if (Hls.isSupported()) {
@@ -228,7 +265,7 @@ export default function VideoPlayer({
       video.removeEventListener("waiting", handleWaiting);
       video.removeEventListener("playing", handlePlaying);
     };
-  }, [playbackUrl]);
+  }, [playbackUrl, activeType, activeIsM3U8]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -291,11 +328,18 @@ export default function VideoPlayer({
     <div className="flex flex-col gap-4">
       <div ref={containerRef} className="player-container">
         <video ref={videoRef} className="w-full h-full" crossOrigin="anonymous" playsInline poster={posterUrl}>
-          {sources?.subs?.map((sub, i) => (
-            <track key={i} kind="subtitles" label={sub.lang}
-              src={`/api/sub-proxy?url=${encodeURIComponent(sub.url)}`}
-              default={i === activeSub} />
-          ))}
+          {sources?.subs?.map((sub, i) => {
+            // proxy.scrapeequalsgayporn.st has CORS headers; all others need sub-proxy
+            const hasCors = sub.url.includes("proxy.scrapeequalsgayporn.st");
+            const subSrc = hasCors
+              ? sub.url
+              : `/api/sub-proxy?url=${encodeURIComponent(sub.url)}`;
+            return (
+              <track key={i} kind="subtitles" label={sub.lang}
+                src={subSrc}
+                default={i === activeSub} />
+            );
+          })}
         </video>
         <PlayerChrome
           containerRef={containerRef}

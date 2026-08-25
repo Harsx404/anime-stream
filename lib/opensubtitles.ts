@@ -4,6 +4,14 @@ const REST_API = "https://rest.opensubtitles.org";
 const V3_API = "https://api.opensubtitles.com/api/v1";
 const UA = "AnimeStream v1.0";
 
+async function fetchWithFallback(url: string, init?: RequestInit & { next?: { revalidate?: number } }): Promise<Response> {
+  try {
+    return await dnsFetch(url, init);
+  } catch {
+    return await fetch(url, init);
+  }
+}
+
 export interface OpenSubtitleResult {
   url: string;
   language: string;
@@ -29,6 +37,20 @@ function imdbIdToNumber(imdbId: string): number {
   return m ? parseInt(m[1], 10) : 0;
 }
 
+async function getImdbIdFromTmdb(tmdbId: number, mediaType: string): Promise<string | undefined> {
+  try {
+    const tmdbKey = process.env.TMDB_API_KEY;
+    if (!tmdbKey) return undefined;
+    const url = `https://api.themoviedb.org/3/${mediaType}/${tmdbId}?api_key=${tmdbKey}&append_to_response=external_ids`;
+    const resp = await fetch(url, { cache: "no-store" });
+    if (!resp.ok) return undefined;
+    const data = await resp.json();
+    return data?.external_ids?.imdb_id || data?.imdb_id || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function searchOpenSubtitles(params: {
   imdbId?: string;
   tmdbId?: number;
@@ -37,7 +59,7 @@ export async function searchOpenSubtitles(params: {
   episode?: number;
   language?: string;
 }): Promise<OpenSubtitleResult[]> {
-  const { imdbId, mediaType = "movie", season, episode, language = "eng" } = params;
+  const { imdbId, tmdbId, mediaType = "movie", season, episode, language = "eng" } = params;
 
   const apiKey = process.env.OPENSUBTITLES_API_KEY;
 
@@ -45,7 +67,13 @@ export async function searchOpenSubtitles(params: {
     return searchV3({ ...params, apiKey, language });
   }
 
-  return searchRest({ imdbId, mediaType, season, episode, language });
+  // REST API requires imdbId — try to fetch it from TMDB if missing
+  let effectiveImdbId = imdbId;
+  if (!effectiveImdbId && tmdbId) {
+    effectiveImdbId = await getImdbIdFromTmdb(tmdbId, mediaType);
+  }
+
+  return searchRest({ imdbId: effectiveImdbId, mediaType, season, episode, language });
 }
 
 async function searchRest(params: {
@@ -67,7 +95,7 @@ async function searchRest(params: {
   }
 
   try {
-    const resp = await dnsFetch(`${REST_API}${path}`, {
+    const resp = await fetchWithFallback(`${REST_API}${path}`, {
       headers: {
         "User-Agent": UA,
         "Accept": "application/json",
@@ -124,7 +152,7 @@ async function searchV3(params: {
   query.set("languages", language);
 
   try {
-    const resp = await dnsFetch(`${V3_API}/subtitles?${query.toString()}`, {
+    const resp = await fetchWithFallback(`${V3_API}/subtitles?${query.toString()}`, {
       headers: {
         "Api-Key": apiKey,
         "User-Agent": UA,

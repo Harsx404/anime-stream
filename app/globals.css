@@ -1327,6 +1327,31 @@ a {
   letter-spacing: 0.5px;
 }
 
+/* --- Clickable card + play overlay --- */
+
+.sports-card--link {
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+}
+
+.sports-card-play-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  color: #fff;
+  pointer-events: none;
+}
+
+.sports-card--link:hover .sports-card-play-overlay {
+  opacity: 1;
+}
+
 /* --- Empty state --- */
 
 .sports-empty {

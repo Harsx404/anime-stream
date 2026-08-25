@@ -37,6 +37,7 @@ export interface MatchStream {
   hd: boolean;
   embedUrl: string;
   source: string;
+  viewers?: number;
 }
 
 let sportsCache: { sports: SportCategory[]; expiresAt: number } | null = null;
@@ -116,6 +117,7 @@ export async function getMatchStreams(
     hd: s.hd,
     embedUrl: s.embedUrl,
     source: s.source,
+    viewers: s.viewers,
   }));
 }
 

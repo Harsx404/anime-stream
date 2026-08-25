@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useMiruroEpisodes } from "@/lib/use-miruro";
+import { useAnimeEpisodes } from "@/lib/use-anime";
 import type { Anime } from "@/lib/anilist";
 
 interface Props {
@@ -10,7 +10,7 @@ interface Props {
 }
 
 export default function EpisodeGrid({ anilistId, anime }: Props) {
-  const { episodes, loading, error } = useMiruroEpisodes(anilistId);
+  const { episodes, loading, error } = useAnimeEpisodes(anilistId, "miruro");
   const [episodeCount, setEpisodeCount] = useState(anime.episodes || 0);
 
   useEffect(() => {
