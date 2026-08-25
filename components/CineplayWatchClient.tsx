@@ -4,6 +4,14 @@ import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import type { Level } from "hls.js";
 import { getProgressFor, updateProgressFor } from "@/lib/history";
 import PlayerChrome, { type SettingsGroup } from "@/components/player/PlayerChrome";
+import { type SubtitleConfig, loadSubtitleConfig, saveSubtitleConfig, applySubtitleConfig } from "@/lib/subtitle-config";
+import { tmdbImage } from "@/lib/tmdb-client";
+
+interface SeasonEpisodeSummary {
+  episode_number: number;
+  name?: string;
+  still_path?: string;
+}
 
 interface Props {
   tmdbId: number;
@@ -12,11 +20,13 @@ interface Props {
   year?: number;
   imdbId?: string;
   poster?: string;
+  titleLogo?: string;
   description?: string;
   season?: number;
   episode?: number;
   totalEpisodes?: number;
   totalSeasons?: number;
+  seasonEpisodes?: SeasonEpisodeSummary[];
 }
 
 interface VideasySource {
@@ -36,6 +46,7 @@ interface VideasyData {
   subtitles: VideasySubtitle[];
   provider?: string;
   thumbnail?: string;
+  referer?: string;
 }
 
 type HlsQualityOption = {
@@ -67,11 +78,13 @@ export default function CineplayWatchClient({
   year,
   imdbId,
   poster,
+  titleLogo,
   description,
   season,
   episode,
   totalEpisodes,
   totalSeasons,
+  seasonEpisodes,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -88,6 +101,7 @@ export default function CineplayWatchClient({
   const [isTheater, setIsTheater] = useState(false);
   const [audioTracks, setAudioTracks] = useState<{ id: number; label: string }[]>([]);
   const [activeAudio, setActiveAudio] = useState(0);
+  const [subtitleConfig, setSubtitleConfig] = useState<SubtitleConfig>(() => loadSubtitleConfig());
 
   const progressKey = mediaType === "tv" ? { season, episode } : {};
   const savedProgress = typeof window !== "undefined"
@@ -217,16 +231,29 @@ export default function CineplayWatchClient({
     void fetchSources();
   }, [fetchSources]);
 
+  useEffect(() => {
+    if (containerRef.current) applySubtitleConfig(containerRef.current, subtitleConfig);
+  }, [subtitleConfig]);
+
+  const handleSubtitleConfigChange = useCallback((config: SubtitleConfig) => {
+    setSubtitleConfig(config);
+    saveSubtitleConfig(config);
+    if (containerRef.current) applySubtitleConfig(containerRef.current, config);
+  }, []);
+
   const activeSource = result?.sources?.[activeQuality];
   const activeSourceUrl = activeSource?.url ?? "";
   const isHls = activeSource?.type === "hls" || activeSourceUrl.includes(".m3u8");
   const isMp4 = activeSource?.type === "mp4" || activeSource?.type === "mkv" || activeSourceUrl.includes(".mp4") || activeSourceUrl.includes(".mkv") || activeSourceUrl.includes("cloudflarestorage");
+  const streamReferer = result?.referer ?? "";
 
   const playbackUrl = useMemo(() => {
     if (!activeSourceUrl) return "";
     if (isMp4) return `/api/mp4?url=${encodeURIComponent(activeSourceUrl)}`;
-    return `/api/hls?url=${encodeURIComponent(activeSourceUrl)}`;
-  }, [activeSourceUrl, isMp4]);
+    const params = new URLSearchParams({ url: activeSourceUrl });
+    if (streamReferer) params.set("referer", streamReferer);
+    return `/api/hls?${params.toString()}`;
+  }, [activeSourceUrl, isMp4, streamReferer]);
 
   const onTimeUpdate = useCallback(() => {
     const video = videoRef.current;
@@ -462,7 +489,7 @@ export default function CineplayWatchClient({
 
   if (result && result.sources.length > 1) {
     settingsGroups.push({
-      label: "Server",
+      label: "Source",
       options: result.sources.map((s, i) => ({
         id: String(i),
         label: s.quality,
@@ -497,21 +524,6 @@ export default function CineplayWatchClient({
     });
   }
 
-  if (result?.subtitles && result.subtitles.length > 0) {
-    settingsGroups.push({
-      label: "Subtitles",
-      options: [
-        { id: "-1", label: "Off", active: activeSub === -1 },
-        ...result.subtitles.map((s, i) => ({
-          id: String(i),
-          label: s.label || s.language,
-          active: activeSub === i,
-        })),
-      ],
-      onSelect: (id) => selectSubtitle(Number(id)),
-    });
-  }
-
   if (hlsQualityOptions.length > 1) {
     settingsGroups.push({
       label: "Quality",
@@ -542,11 +554,13 @@ export default function CineplayWatchClient({
     });
   }
 
+  const nextEpisodeData = seasonEpisodes?.find((e) => e.episode_number === (episode || 0) + 1);
   const nextEpisode =
     mediaType === "tv" && episode && totalEpisodes && episode < totalEpisodes
       ? {
           href: `/watch/tv/${tmdbId}/${season || 1}/${episode + 1}`,
-          meta: `Episode ${episode + 1}`,
+          meta: nextEpisodeData?.name ? `${episode + 1}. ${nextEpisodeData.name}` : `Episode ${episode + 1}`,
+          thumbnail: nextEpisodeData?.still_path ? tmdbImage(nextEpisodeData.still_path, "w300") : undefined,
         }
       : undefined;
 
@@ -571,7 +585,7 @@ export default function CineplayWatchClient({
               kind="subtitles"
               label={sub.label || sub.language}
               srcLang={sub.language}
-              src={`/api/sub-proxy?url=${encodeURIComponent(sub.url)}`}
+              src={i === activeSub ? `/api/sub-proxy?url=${encodeURIComponent(sub.url)}` : undefined}
               default={i === activeSub}
             />
           ))}
@@ -580,6 +594,7 @@ export default function CineplayWatchClient({
           containerRef={containerRef}
           videoRef={videoRef}
           title={title}
+          titleLogo={titleLogo}
           subtitleLine={subtitleLine}
           description={description}
           nextEpisode={nextEpisode}
@@ -589,11 +604,17 @@ export default function CineplayWatchClient({
           onRetry={error ? { label: "Retry", onClick: fetchSources } : undefined}
           isTheater={isTheater}
           onTheaterToggle={() => setIsTheater((v) => !v)}
+          subtitleConfig={subtitleConfig}
+          onSubtitleConfigChange={handleSubtitleConfigChange}
+          tmdbId={tmdbId}
+          seasonNumber={season}
+          episodeNumber={episode}
+          mediaType={mediaType}
         />
       </div>
 
       {mediaType === "tv" && (prevEpisode || nextEpisode) && (
-        <div className="flex gap-3 mt-4">
+        <div className="flex gap-3 mt-4" style={{ flexWrap: "wrap" }}>
           {prevEpisode && (
             <a
               href={prevEpisode}

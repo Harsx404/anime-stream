@@ -22,7 +22,7 @@ export default async function WatchPage({ params }: Props) {
   const title = anime.title.english || anime.title.romaji;
 
   return (
-    <div style={{ maxWidth: 1400, margin: "0 auto", padding: "16px 16px" }}>
+    <div style={{ maxWidth: 1400, margin: "0 auto", padding: "clamp(8px, 2vw, 16px)" }}>
       <HistoryTracker
         anilistId={anilistId}
         episode={episode}

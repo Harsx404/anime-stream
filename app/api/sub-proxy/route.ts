@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { dnsFetch } from "@/lib/dns-fix";
+import { gunzipSync } from "zlib";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -139,7 +140,22 @@ export async function GET(req: Request) {
       );
     }
 
-    const text = await resp.text();
+    // OpenSubtitles returns gzip-compressed files - check for gzip magic bytes
+    const buffer = await resp.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    let text: string;
+    if (bytes[0] === 31 && bytes[1] === 139) {
+      try {
+        text = gunzipSync(Buffer.from(buffer)).toString("utf-8");
+      } catch {
+        return NextResponse.json(
+          { error: "Failed to decompress gzip subtitle" },
+          { status: 502 }
+        );
+      }
+    } else {
+      text = new TextDecoder().decode(buffer);
+    }
     const trimmed = text.replace(/^\uFEFF/, "").trim();
 
     // Direct VTT file

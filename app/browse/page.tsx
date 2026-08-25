@@ -97,7 +97,7 @@ export default async function BrowsePage({ searchParams }: Props) {
   const gridKey = JSON.stringify(params);
 
   return (
-    <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px 16px" }}>
+    <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px clamp(12px, 3vw, 16px)" }}>
       <h1 className="section-heading" style={{ fontSize: 24 }}>Browse</h1>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>

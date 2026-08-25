@@ -46,7 +46,7 @@ export default function HeroCarousel({ items, eyebrow }: Props) {
   if (!items || items.length === 0) return null;
 
   return (
-    <section className="hero-content-anim" style={{ position: "relative", width: "100%", minHeight: 520, overflow: "hidden", marginBottom: 40 }}>
+    <section className="hero-content-anim" style={{ position: "relative", width: "100%", minHeight: "clamp(380px, 60vh, 520px)", overflow: "hidden", marginBottom: 40 }}>
       <div ref={emblaRef} style={{ overflow: "hidden", height: "100%" }}>
         <div style={{ display: "flex", height: "100%" }}>
           {items.map((item, index) => {
@@ -58,7 +58,7 @@ export default function HeroCarousel({ items, eyebrow }: Props) {
                   flex: "0 0 100%",
                   minWidth: 0,
                   position: "relative",
-                  height: 520,
+                  height: "clamp(380px, 60vh, 520px)",
                   opacity: isActive ? 1 : 0.4,
                   transition: "opacity 0.5s ease",
                 }}
@@ -76,14 +76,14 @@ export default function HeroCarousel({ items, eyebrow }: Props) {
                     display: "flex",
                     flexDirection: "column",
                     justifyContent: "flex-end",
-                    padding: "32px clamp(16px, 4vw, 64px) 60px",
+                    padding: "clamp(20px, 4vw, 32px) clamp(16px, 4vw, 64px) clamp(40px, 8vw, 60px)",
                     opacity: isActive ? 1 : 0,
                     transform: isActive ? "translateY(0)" : "translateY(10px)",
                     transition: "opacity 0.6s ease, transform 0.6s ease",
                     pointerEvents: isActive ? "auto" : "none",
                   }}
                 >
-                  <div style={{ maxWidth: 620 }}>
+                  <div style={{ maxWidth: "min(620px, 100%)" }}>
                     {eyebrow && (
                       <p
                         style={{
@@ -144,12 +144,12 @@ export default function HeroCarousel({ items, eyebrow }: Props) {
                     {item.overview && (
                       <p
                         style={{
-                          fontSize: 14,
+                          fontSize: "clamp(13px, 1.8vw, 14px)",
                           lineHeight: 1.6,
                           color: "rgba(255,255,255,0.75)",
                           marginBottom: 20,
                           display: "-webkit-box",
-                          WebkitLineClamp: 3,
+                          WebkitLineClamp: "auto",
                           WebkitBoxOrient: "vertical",
                           overflow: "hidden",
                         }}

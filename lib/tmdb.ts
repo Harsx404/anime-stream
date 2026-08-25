@@ -1,5 +1,6 @@
 import { dnsFetch } from "@/lib/dns-fix";
 export { tmdbImage, SORT_OPTIONS, type SortKey } from "@/lib/tmdb-client";
+import { tmdbImage } from "@/lib/tmdb-client";
 import type { SortKey } from "@/lib/tmdb-client";
 // TMDB API client - server-side, uses TMDB_API_KEY from env
 // All client-side calls go through /api/tmdb/[...path] proxy which injects the key
@@ -78,6 +79,11 @@ export interface TMDBMovie {
   credits?: TMDBCredits;
   videos?: TMDBVideos;
   similar?: TMDBSearchResponse;
+  images?: TMDBImages;
+}
+
+export interface TMDBImages {
+  logos: { file_path: string; iso_639_1: string | null; vote_average: number; width: number }[];
 }
 
 export interface TMDBCredits {
@@ -116,6 +122,7 @@ export interface TMDBTV {
   credits?: TMDBCredits;
   videos?: TMDBVideos;
   similar?: TMDBSearchResponse;
+  images?: TMDBImages;
 }
 
 export interface TMDBSeasonSummary {
@@ -197,7 +204,10 @@ export interface DiscoverOptions {
 // --- Movie functions ---
 
 export async function getMovieDetails(id: number): Promise<TMDBMovie> {
-  return tmdbFetch<TMDBMovie>(`/movie/${id}`, { append_to_response: "credits,videos,similar,external_ids" });
+  return tmdbFetch<TMDBMovie>(`/movie/${id}`, {
+    append_to_response: "credits,videos,similar,external_ids,images",
+    include_image_language: "en,null",
+  });
 }
 
 export async function getTrendingMovies(timeWindow: "day" | "week" = "week"): Promise<TMDBSearchResult[]> {
@@ -256,7 +266,23 @@ export async function discoverMovies(opts: DiscoverOptions = {}): Promise<TMDBSe
 // --- TV functions ---
 
 export async function getTVDetails(id: number): Promise<TMDBTV> {
-  return tmdbFetch<TMDBTV>(`/tv/${id}`, { append_to_response: "credits,videos,similar,external_ids" });
+  return tmdbFetch<TMDBTV>(`/tv/${id}`, {
+    append_to_response: "credits,videos,similar,external_ids,images",
+    include_image_language: "en,null",
+  });
+}
+
+// Picks the best English (falling back to language-less) title-treatment logo
+// TMDB provides, preferring a wide PNG so it reads well over video.
+export function getLogoUrl(images?: TMDBImages): string | undefined {
+  if (!images?.logos?.length) return undefined;
+  const ranked = [...images.logos].sort((a, b) => {
+    const aEn = a.iso_639_1 === "en" ? 1 : 0;
+    const bEn = b.iso_639_1 === "en" ? 1 : 0;
+    if (aEn !== bEn) return bEn - aEn;
+    return b.vote_average - a.vote_average || b.width - a.width;
+  });
+  return tmdbImage(ranked[0].file_path, "w500");
 }
 
 export async function getTVSeason(tvId: number, seasonNumber: number): Promise<TMDBSeason> {

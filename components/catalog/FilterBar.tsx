@@ -165,8 +165,8 @@ export default function FilterBar({ mediaType }: { mediaType: CatalogMediaType }
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
-          gap: 16,
+          gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+          gap: "clamp(8px, 2vw, 16px)",
           alignItems: "end",
         }}
       >

@@ -25,6 +25,7 @@ export async function GET(req: Request) {
         sources: result.sources,
         subtitles: result.subtitles,
         provider: result.provider,
+        referer: "https://vidlink.pro/",
       },
     });
   } catch (e) {

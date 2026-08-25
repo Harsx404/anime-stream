@@ -34,7 +34,7 @@ export default async function LandingPage() {
       <VideoHero />
 
       {/* Feature section */}
-      <section style={{ maxWidth: 1200, margin: "0 auto", padding: "80px 24px" }}>
+      <section style={{ maxWidth: 1200, margin: "0 auto", padding: "clamp(40px, 8vw, 80px) clamp(16px, 4vw, 24px)" }}>
         <div style={{ textAlign: "center", marginBottom: 56 }}>
           <span className="status-chip status-chip-accent" style={{ marginBottom: 16 }}>
             Why KINOVA
@@ -74,8 +74,8 @@ export default async function LandingPage() {
       </section>
 
       {/* Trending preview */}
-      <section style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px 80px" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+      <section style={{ maxWidth: 1200, margin: "0 auto", padding: "0 clamp(16px, 4vw, 24px) clamp(40px, 8vw, 80px)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
           <h2
             className={anton.className}
             style={{
@@ -96,7 +96,7 @@ export default async function LandingPage() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
             gap: 12,
           }}
         >
@@ -140,8 +140,8 @@ export default async function LandingPage() {
       </section>
 
       {/* Movies + TV preview */}
-      <section style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px 80px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+      <section style={{ maxWidth: 1200, margin: "0 auto", padding: "0 clamp(16px, 4vw, 24px) clamp(40px, 8vw, 80px)" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24 }}>
           <div>
             <h3
               className={anton.className}
@@ -217,7 +217,7 @@ export default async function LandingPage() {
         style={{
           position: "relative",
           overflow: "hidden",
-          padding: "100px 24px",
+          padding: "clamp(50px, 10vw, 100px) clamp(16px, 4vw, 24px)",
           textAlign: "center",
           background:
             "radial-gradient(circle at center, rgba(225,29,60,0.10) 0%, transparent 55%), #000",

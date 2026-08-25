@@ -30,7 +30,7 @@ export default function CatalogHero({
       style={{
         position: "relative",
         width: "100%",
-        minHeight: 520,
+        minHeight: "clamp(380px, 60vh, 520px)",
         overflow: "hidden",
         marginBottom: 40,
       }}
@@ -44,14 +44,14 @@ export default function CatalogHero({
         style={{
           position: "relative",
           zIndex: 1,
-          minHeight: 520,
+          minHeight: "clamp(380px, 60vh, 520px)",
           display: "flex",
           flexDirection: "column",
           justifyContent: "flex-end",
-          padding: "32px clamp(16px, 4vw, 64px) 40px",
+          padding: "clamp(20px, 4vw, 32px) clamp(16px, 4vw, 64px) 40px",
         }}
       >
-        <div style={{ maxWidth: 620 }}>
+        <div style={{ maxWidth: "min(620px, 100%)" }}>
           {eyebrow && (
             <p
               style={{
@@ -115,12 +115,12 @@ export default function CatalogHero({
           {overview && (
             <p
               style={{
-                fontSize: 14,
+                fontSize: "clamp(13px, 1.8vw, 14px)",
                 lineHeight: 1.6,
                 color: "rgba(255,255,255,0.75)",
                 marginBottom: 20,
                 display: "-webkit-box",
-                WebkitLineClamp: 3,
+                WebkitLineClamp: "auto",
                 WebkitBoxOrient: "vertical",
                 overflow: "hidden",
               }}

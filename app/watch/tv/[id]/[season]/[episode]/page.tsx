@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getTVDetails, getTVSeason, tmdbImage } from "@/lib/tmdb";
+import { getTVDetails, getTVSeason, tmdbImage, getLogoUrl } from "@/lib/tmdb";
 import CineplayWatchClient from "@/components/CineplayWatchClient";
 import WatchBreadcrumb from "@/components/WatchBreadcrumb";
 
@@ -25,7 +25,7 @@ export default async function TVWatchPage({ params }: Props) {
   const totalEpisodes = seasonData?.episodes?.length || tv.number_of_episodes || 1;
 
   return (
-    <div style={{ maxWidth: 1400, margin: "0 auto", padding: "16px" }}>
+    <div style={{ maxWidth: 1400, margin: "0 auto", padding: "clamp(8px, 2vw, 16px)" }}>
       <WatchBreadcrumb
         backHref={`/tv/${tmdbId}`}
         backLabel={tv.name}
@@ -37,11 +37,17 @@ export default async function TVWatchPage({ params }: Props) {
         title={tv.name}
         imdbId={tv.external_ids?.imdb_id}
         poster={episodeData?.still_path ? tmdbImage(episodeData.still_path, "w1280") : tv.backdrop_path ? tmdbImage(tv.backdrop_path, "w1280") : undefined}
+        titleLogo={getLogoUrl(tv.images)}
         description={episodeData?.overview || tv.overview}
         season={season}
         episode={episode}
         totalEpisodes={totalEpisodes}
         totalSeasons={tv.number_of_seasons}
+        seasonEpisodes={seasonData?.episodes?.map((e) => ({
+          episode_number: e.episode_number,
+          name: e.name,
+          still_path: e.still_path,
+        }))}
       />
     </div>
   );

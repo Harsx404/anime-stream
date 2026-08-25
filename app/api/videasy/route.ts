@@ -39,6 +39,7 @@ export async function GET(req: Request) {
         subtitles: result.subtitles,
         provider: result.provider,
         thumbnail: result.thumbnail,
+        referer: "https://www.vidking.net/",
       },
     });
   } catch (e) {

@@ -10,6 +10,23 @@ function resolveUrl(base: string, relative: string): string {
   }
 }
 
+const DOMAIN_REFERER_MAP: Record<string, string> = {
+  "moon.peakstorm.top": "https://www.vidking.net/",
+  "keenanchor.top": "https://www.vidking.net/",
+  "vidlink.pro": "https://vidlink.pro/",
+  "vixsrc.to": "https://vixsrc.to/",
+};
+
+function getRefererForUrl(url: string): string | null {
+  try {
+    const host = new URL(url).hostname;
+    for (const [domain, ref] of Object.entries(DOMAIN_REFERER_MAP)) {
+      if (host === domain || host.endsWith("." + domain)) return ref;
+    }
+  } catch {}
+  return null;
+}
+
 function upstreamHeaders(
   targetUrl: string,
   refererOverride: string | null,
@@ -64,6 +81,9 @@ export async function GET(req: Request) {
 
   const decoded = decodeURIComponent(targetUrl);
 
+  // Resolve referer: explicit param > domain-based fallback
+  const effectiveReferer = referer || getRefererForUrl(decoded);
+
   const maxRetries = 3;
   let upstream: Response | null = null;
   let lastError: any = null;
@@ -71,13 +91,24 @@ export async function GET(req: Request) {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       upstream = await dnsFetch(decoded, {
-        headers: upstreamHeaders(decoded, referer),
+        headers: upstreamHeaders(decoded, effectiveReferer),
         cache: "no-store",
       });
 
       // On 403, try fallback referers
       if (upstream.status === 403) {
-        if (referer) {
+        // Try domain-mapped referer if we haven't already
+        const domainRef = getRefererForUrl(decoded);
+        if (domainRef && effectiveReferer !== domainRef) {
+          try {
+            upstream = await dnsFetch(decoded, {
+              headers: upstreamHeaders(decoded, domainRef),
+              cache: "no-store",
+            });
+          } catch {}
+        }
+        // Try stream's own origin as referer
+        if (upstream.status === 403) {
           try {
             const streamOrigin = new URL(decoded).origin;
             upstream = await dnsFetch(decoded, {
@@ -86,6 +117,7 @@ export async function GET(req: Request) {
             });
           } catch {}
         }
+        // Try no referer at all
         if (upstream.status === 403) {
           try {
             upstream = await dnsFetch(decoded, {
@@ -119,6 +151,11 @@ export async function GET(req: Request) {
 
   if (!upstream.ok) return new NextResponse(null, { status: upstream.status });
 
+  // Use the final URL (after redirects) as the base for resolving relative URLs
+  // This is critical for shortlink/redirect services like jmp2.uk where the
+  // master playlist is served from a different domain than the shortlink
+  const baseUrl = upstream.headers.get("x-final-url") || decoded;
+
   const contentType = upstream.headers.get("content-type") ?? "";
   const contentTypeLower = contentType.toLowerCase();
   const isM3u8ByHeader =
@@ -128,7 +165,7 @@ export async function GET(req: Request) {
 
   const proxiedUrl = (url: string) => {
     const params = new URLSearchParams({ url });
-    if (referer) params.set("referer", referer);
+    if (effectiveReferer) params.set("referer", effectiveReferer);
     return `${origin}/api/hls?${params.toString()}`;
   };
 
@@ -141,12 +178,12 @@ export async function GET(req: Request) {
         const trimmed = line.trim();
         if (trimmed.startsWith("#")) {
           return line.replace(/URI="([^"]+)"/g, (_, uri) => {
-            const abs = resolveUrl(decoded, uri);
+            const abs = resolveUrl(baseUrl, uri);
             return `URI="${proxiedUrl(abs)}"`;
           });
         }
         if (trimmed && !trimmed.startsWith("#")) {
-          const abs = resolveUrl(decoded, trimmed);
+          const abs = resolveUrl(baseUrl, trimmed);
           return proxiedUrl(abs);
         }
         return line;
@@ -176,12 +213,12 @@ export async function GET(req: Request) {
         const trimmed = line.trim();
         if (trimmed.startsWith("#")) {
           return line.replace(/URI="([^"]+)"/g, (_, uri) => {
-            const abs = resolveUrl(decoded, uri);
+            const abs = resolveUrl(baseUrl, uri);
             return `URI="${proxiedUrl(abs)}"`;
           });
         }
         if (trimmed && !trimmed.startsWith("#")) {
-          const abs = resolveUrl(decoded, trimmed);
+          const abs = resolveUrl(baseUrl, trimmed);
           return proxiedUrl(abs);
         }
         return line;

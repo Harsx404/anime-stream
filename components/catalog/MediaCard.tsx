@@ -4,7 +4,9 @@ import type { CatalogItem } from "@/components/catalog/toCatalogItem";
 import WatchlistButton from "@/components/catalog/WatchlistButton";
 
 export default function MediaCard({ item, width }: { item: CatalogItem; width?: number }) {
-  const rootStyle = width ? { width, flexShrink: 0 } : { width: "100%" };
+  const rootStyle = width
+    ? { width: `var(--card-w, ${width}px)`, flexShrink: 0 }
+    : { width: "100%" };
   const playSize = width && width < 140 ? 32 : 40;
   return (
     <a href={item.href} className="media-card" style={rootStyle}>

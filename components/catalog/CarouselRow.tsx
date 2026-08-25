@@ -50,7 +50,7 @@ export default function CarouselRow({ title, accentWord, items, viewMoreHref }: 
         )}
       </div>
 
-      <div className="carousel-row">
+      <div className="carousel-row" style={{ ["--card-w" as string]: "124px" }}>
         <button
           className="carousel-arrow arrow-left"
           onClick={() => scrollBy(-1)}

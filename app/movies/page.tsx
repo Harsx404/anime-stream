@@ -77,7 +77,7 @@ export default async function MoviesPage({ searchParams }: Props) {
     <div>
       {heroItems.length > 0 && <HeroCarousel items={heroItems} eyebrow="Trending Movies" />}
 
-      <div style={{ maxWidth: 1400, margin: "0 auto", padding: "0 16px 24px" }}>
+      <div style={{ maxWidth: 1400, margin: "0 auto", padding: "0 clamp(12px, 3vw, 16px) 24px" }}>
         <CarouselRow title="Trending" accentWord="This Week" items={trending.map((m) => fromTMDB(m, "movie", genreMap))} />
         <CarouselRow title="Popular" accentWord="Movies" items={popular.map((m) => fromTMDB(m, "movie", genreMap))} />
         <CarouselRow title="Top" accentWord="Rated" items={topRated.map((m) => fromTMDB(m, "movie", genreMap))} />

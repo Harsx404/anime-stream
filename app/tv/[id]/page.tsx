@@ -1,6 +1,6 @@
 import { getTVDetails, getTVSeason, tmdbImage, getDirector, getTrailerKey } from "@/lib/tmdb";
 import { notFound } from "next/navigation";
-import SeasonEpisodePicker from "@/components/SeasonEpisodePicker";
+import SeasonEpisodeRail from "@/components/SeasonEpisodeRail";
 import DetailHero from "@/components/DetailHero";
 import TrailerModal from "@/components/TrailerModal";
 
@@ -38,7 +38,6 @@ export default async function TVPage({ params }: Props) {
   const seasonEpisodes = firstSeason
     ? await getTVSeason(tvId, firstSeason.season_number).catch(() => null)
     : null;
-  const railEpisodes = (seasonEpisodes?.episodes || []).slice(0, 4);
 
   return (
     <div>
@@ -54,20 +53,17 @@ export default async function TVPage({ params }: Props) {
         primaryLabel="Watch Now"
         trailer={trailerKey ? <TrailerModal videoKey={trailerKey} /> : undefined}
         credit={credit}
-        rail={{
-          title: `Season ${firstSeason?.season_number ?? 1} Episodes`,
-          items: railEpisodes.map((ep) => ({
-            href: `/watch/tv/${tvId}/${ep.season_number}/${ep.episode_number}`,
-            image: ep.still_path ? tmdbImage(ep.still_path, "w300") : undefined,
-            label: `Episode ${ep.episode_number}`,
-            sublabel: ep.name,
-          })),
-        }}
+        railSlot={
+          <div className="hero-rail">
+            <SeasonEpisodeRail
+              tvId={tvId}
+              seasons={tv.seasons || []}
+              initialSeason={firstSeason?.season_number}
+              initialEpisodes={seasonEpisodes?.episodes || []}
+            />
+          </div>
+        }
       />
-
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 16px 24px" }}>
-        <SeasonEpisodePicker tvId={tvId} seasons={tv.seasons || []} />
-      </div>
     </div>
   );
 }

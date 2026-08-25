@@ -1,14 +1,31 @@
-// DNS fix for ISP-level blocking of themoviedb.org
+// DNS fix for ISP-level blocking of themoviedb.org and IPTV streams.
 // Uses DNS over HTTPS (DoH) via Cloudflare to resolve hostnames,
 // bypassing ISP DNS blocking on port 53.
 // Then connects to the IP directly with proper Host/SNI headers.
+// Supports HTTP, HTTPS, custom ports, IP-literal hostnames, redirect following,
+// and relaxed TLS for IPTV streams with mismatched certificates.
 import https from "node:https";
+import http from "node:http";
+import net from "node:net";
 
 const DOH_URL = "https://cloudflare-dns.com/dns-query";
 const dnsCache = new Map<string, { ips: string[]; expiresAt: number }>();
 const CACHE_TTL = 300_000; // 5 minutes
+const MAX_REDIRECTS = 5;
+
+const IP_REGEX = /^(\d{1,3}\.){3}\d{1,3}$/;
+
+function isIPLiteral(hostname: string): boolean {
+  return IP_REGEX.test(hostname) || hostname.startsWith("[");
+}
 
 async function resolveHost(hostname: string, forceRefresh = false): Promise<string[]> {
+  // If it's already an IP literal, skip DoH entirely
+  if (isIPLiteral(hostname)) {
+    const ip = hostname.replace(/^\[|\]$/g, "");
+    return [ip];
+  }
+
   const now = Date.now();
   const cached = dnsCache.get(hostname);
   if (!forceRefresh && cached && cached.expiresAt > now) {
@@ -33,25 +50,28 @@ async function resolveHost(hostname: string, forceRefresh = false): Promise<stri
 
 function doRequest(parsed: URL, ip: string, init?: RequestInit & { next?: { revalidate?: number } }): Promise<Response> {
   return new Promise((resolve, reject) => {
-    const options: https.RequestOptions = {
-      hostname: ip,
-      port: 443,
-      path: parsed.pathname + parsed.search,
-      method: init?.method || "GET",
-      headers: {
-        Host: parsed.hostname,
-        Accept: "*/*",
-        "Accept-Encoding": "identity",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        ...(init?.headers as Record<string, string>),
-      },
-      servername: parsed.hostname,
-      timeout: 10000,
+    // Normalize caller headers to lowercase keys to avoid duplicates with defaults
+    const callerHeaders: Record<string, string> = {};
+    if (init?.headers) {
+      for (const [key, value] of Object.entries(init.headers as Record<string, string>)) {
+        callerHeaders[key.toLowerCase()] = value;
+      }
+    }
+
+    const isHttps = parsed.protocol === "https:";
+    const port = parsed.port ? Number(parsed.port) : isHttps ? 443 : 80;
+
+    const baseHeaders: Record<string, string> = {
+      host: parsed.hostname,
+      accept: "*/*",
+      "accept-encoding": "identity",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      ...callerHeaders,
     };
 
-    const req = https.request(options, (res) => {
+    const handleResponse = (res: http.IncomingMessage) => {
       const chunks: Buffer[] = [];
-      res.on("data", (chunk) => chunks.push(chunk));
+      res.on("data", (chunk: Buffer) => chunks.push(chunk));
       res.on("end", () => {
         const body = Buffer.concat(chunks);
         const cleanHeaders: Record<string, string> = {};
@@ -66,11 +86,38 @@ function doRequest(parsed: URL, ip: string, init?: RequestInit & { next?: { reva
           }),
         );
       });
-    });
+    };
 
-    req.on("timeout", () => { req.destroy(new Error("Request timeout")); });
-    req.on("error", reject);
-    req.end();
+    if (isHttps) {
+      const options: https.RequestOptions = {
+        hostname: ip,
+        port,
+        path: parsed.pathname + parsed.search,
+        method: init?.method || "GET",
+        headers: baseHeaders,
+        servername: isIPLiteral(ip) ? undefined : parsed.hostname,
+        timeout: 10000,
+        // Relax TLS for IPTV streams with mismatched/expired certificates
+        rejectUnauthorized: false,
+      };
+      const req = https.request(options, handleResponse);
+      req.on("timeout", () => { req.destroy(new Error("Request timeout")); });
+      req.on("error", reject);
+      req.end();
+    } else {
+      const options: http.RequestOptions = {
+        hostname: ip,
+        port,
+        path: parsed.pathname + parsed.search,
+        method: init?.method || "GET",
+        headers: baseHeaders,
+        timeout: 10000,
+      };
+      const req = http.request(options, handleResponse);
+      req.on("timeout", () => { req.destroy(new Error("Request timeout")); });
+      req.on("error", reject);
+      req.end();
+    }
   });
 }
 
@@ -78,35 +125,67 @@ function doRequest(parsed: URL, ip: string, init?: RequestInit & { next?: { reva
  * Custom fetch that resolves DNS via DNS over HTTPS (Cloudflare DoH),
  * bypassing ISP DNS blocking on port 53.
  * Connects to the IP directly while setting Host/SNI headers for virtual hosting.
+ * Supports HTTP and HTTPS, custom ports, IP-literal hostnames, and redirect following.
  * Tries multiple IPs on connection errors.
  */
 export async function dnsFetch(
   url: string | URL,
   init?: RequestInit & { next?: { revalidate?: number } },
 ): Promise<Response> {
-  const parsed = new URL(url);
+  let currentUrl = typeof url === "string" ? url : url.toString();
 
-  const ips = await resolveHost(parsed.hostname);
+  for (let redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount++) {
+    const parsed = new URL(currentUrl);
+    const ips = await resolveHost(parsed.hostname);
 
-  // Try each IP, with a fresh DNS lookup as fallback
-  for (let i = 0; i < ips.length; i++) {
-    try {
-      return await doRequest(parsed, ips[i], init);
-    } catch (err) {
-      // Last IP failed — try fresh DNS resolution
-      if (i === ips.length - 1) {
-        const freshIps = await resolveHost(parsed.hostname, true);
-        for (const freshIp of freshIps) {
-          try {
-            return await doRequest(parsed, freshIp, init);
-          } catch {
-            // continue to next IP
+    let response: Response | null = null;
+    let lastError: Error | null = null;
+
+    // Try each IP, with a fresh DNS lookup as fallback
+    for (let i = 0; i < ips.length; i++) {
+      try {
+        response = await doRequest(parsed, ips[i], init);
+        break;
+      } catch (err) {
+        lastError = err as Error;
+        // Last IP failed — try fresh DNS resolution
+        if (i === ips.length - 1) {
+          const freshIps = await resolveHost(parsed.hostname, true);
+          for (const freshIp of freshIps) {
+            try {
+              response = await doRequest(parsed, freshIp, init);
+              break;
+            } catch {
+              // continue to next IP
+            }
           }
         }
-        throw err;
       }
     }
+
+    if (!response) {
+      throw lastError || new Error(`dnsFetch: all IPs failed for ${parsed.hostname}`);
+    }
+
+    // Follow redirects (301, 302, 307, 308)
+    if ([301, 302, 307, 308].includes(response.status)) {
+      const location = response.headers.get("location");
+      if (location && redirectCount < MAX_REDIRECTS) {
+        const nextUrl = new URL(location, currentUrl).toString();
+        currentUrl = nextUrl;
+        continue;
+      }
+    }
+
+    // Expose the final URL (after redirects) via a custom header so callers
+    // can resolve relative URLs correctly (e.g. HLS playlist sub-resources)
+    const finalHeaders = new Headers(response.headers);
+    finalHeaders.set("x-final-url", currentUrl);
+    return new Response(response.body, {
+      status: response.status,
+      headers: finalHeaders,
+    });
   }
 
-  throw new Error(`dnsFetch: all IPs failed for ${parsed.hostname}`);
+  throw new Error(`dnsFetch: too many redirects for ${url}`);
 }

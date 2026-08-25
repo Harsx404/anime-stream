@@ -11,7 +11,7 @@ export default function DetailRail({ title, items }: { title: string; items: Rai
   if (items.length === 0) return null;
 
   return (
-    <div style={{ width: 220 }}>
+    <div style={{ width: "100%", maxWidth: 220 }}>
       <p
         style={{
           fontSize: 11,

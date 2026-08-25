@@ -64,7 +64,7 @@ export default function EpisodeGrid({ anilistId, anime }: Props) {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              height: 40,
+              height: 44,
               borderRadius: 8,
               fontSize: 13,
               fontWeight: 700,

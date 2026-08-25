@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { getVideasySubtitles } from "@/lib/videasy";
+import { getVidLinkSources } from "@/lib/vidlink";
 import { getVixSrcSources } from "@/lib/vixsrc";
+import { searchOpenSubtitles } from "@/lib/opensubtitles";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,20 +23,18 @@ export async function GET(req: Request) {
   const subtitles: Array<{ url: string; language: string; label: string }> = [];
   const seen = new Set<string>();
 
-  // Source 1: subs.videasy.to (provider-agnostic, timed to original content)
-  if (imdbId) {
-    try {
-      const subs = await getVideasySubtitles(imdbId, mediaType, season, episode);
-      for (const s of subs) {
-        const key = s.language.toLowerCase();
-        if (!seen.has(key)) {
-          seen.add(key);
-          subtitles.push({ url: s.url, language: s.language, label: s.label || s.display || s.language });
-        }
+  // Source 1: VidLink (provider-agnostic, timed to original content)
+  try {
+    const vidlink = await getVidLinkSources({ tmdbId, mediaType, season, episode });
+    for (const s of vidlink.subtitles) {
+      const key = s.language.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        subtitles.push({ url: s.url, language: s.language, label: s.label || s.language });
       }
-    } catch {
-      // subs service may be down
     }
+  } catch {
+    // VidLink may fail
   }
 
   // Source 2: VixSrc HLS playlist subtitles (only for VixSrc - timed to VixSrc's encode)
@@ -51,6 +50,28 @@ export async function GET(req: Request) {
       }
     } catch {
       // VixSrc may fail
+    }
+  }
+
+  // Source 3: OpenSubtitles (always try as fallback if we have imdbId)
+  if (subtitles.length === 0 && imdbId) {
+    try {
+      const osResults = await searchOpenSubtitles({
+        imdbId,
+        mediaType,
+        season,
+        episode,
+        language: "eng",
+      });
+      for (const s of osResults) {
+        const key = s.language.toLowerCase();
+        if (!seen.has(key)) {
+          seen.add(key);
+          subtitles.push({ url: s.url, language: s.language, label: s.label });
+        }
+      }
+    } catch {
+      // OpenSubtitles may fail
     }
   }
 

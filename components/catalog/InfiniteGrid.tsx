@@ -152,8 +152,8 @@ export default function InfiniteGrid({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
-          gap: 16,
+          gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))",
+          gap: "clamp(8px, 2vw, 16px)",
         }}
       >
         {items.map((item) => (

@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 
 :root {
   --bg: #000000;
@@ -576,3 +576,1218 @@ a {
   }
 }
 
+/* --- Settings page link hover --- */
+
+.settings-link:hover {
+  color: var(--accent) !important;
+  border-color: var(--accent) !important;
+}
+
+.player-settings-divider {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 8px;
+  margin-top: 8px;
+}
+
+.player-quality-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- Live TV specific UI --- */
+
+.live-channel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 20px;
+}
+
+@media (min-width: 640px) {
+  .live-channel-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+}
+
+.live-channel-card {
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  group: hover;
+  transition: transform 0.2s ease;
+}
+
+.live-channel-card:hover {
+  transform: translateY(-4px);
+}
+
+.live-channel-card-thumb {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: var(--surface-2);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.live-channel-card:hover .live-channel-card-thumb {
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.live-channel-card-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 16px;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.live-channel-card:hover .live-channel-card-thumb img {
+  transform: scale(1.08);
+}
+
+.live-channel-card-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 50%);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 12px;
+  pointer-events: none;
+  opacity: 0.8;
+  transition: opacity 0.25s ease;
+}
+
+.live-channel-card:hover .live-channel-card-overlay {
+  opacity: 1;
+}
+
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(225, 29, 60, 0.2);
+  border: 1px solid rgba(225, 29, 60, 0.4);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 8px;
+  border-radius: 100px;
+  align-self: flex-start;
+  backdrop-filter: blur(4px);
+}
+
+.live-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: pulse 2s infinite;
+}
+
+.live-channel-play-btn {
+  align-self: flex-end;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(4px);
+  transform: translate(8px, 8px) scale(0.8);
+  opacity: 0;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease, background 0.2s ease;
+}
+
+.live-channel-card:hover .live-channel-play-btn {
+  transform: translate(0, 0) scale(1);
+  opacity: 1;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.live-channel-card-info {
+  padding: 12px 4px 4px;
+}
+
+.live-channel-card-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.2s ease;
+}
+
+.live-channel-card:hover .live-channel-card-name {
+  color: var(--accent);
+}
+
+.live-channel-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.live-channel-card-country {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.live-channel-card-tag {
+  font-size: 10px;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: capitalize;
+  border: 1px solid var(--border);
+}
+
+/* --- Live TV filter dropdowns (category / country) --- */
+
+.live-filters-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.live-filter-dropdown {
+  position: relative;
+}
+
+.live-filter-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--chip-bg);
+  border: 1px solid transparent;
+  border-radius: 100px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.live-filter-trigger:hover {
+  color: #fff;
+  border-color: var(--ring-hover);
+}
+
+.live-filter-trigger.is-active {
+  background: rgba(225, 29, 60, 0.12);
+  border-color: rgba(225, 29, 60, 0.4);
+  color: var(--accent);
+}
+
+.live-filter-trigger-label {
+  opacity: 0.7;
+  font-weight: 500;
+}
+
+.live-filter-trigger-value {
+  font-weight: 700;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.live-filter-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 20;
+  width: 240px;
+  background: rgba(12, 12, 16, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.live-filter-panel-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+}
+
+.live-filter-panel-search input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.live-filter-panel-list {
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 6px 0;
+}
+
+.live-filter-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 8px 14px;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 13px;
+  text-transform: capitalize;
+  cursor: pointer;
+}
+
+.live-filter-option:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.live-filter-option.is-active {
+  background: rgba(225, 29, 60, 0.14);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.live-filter-option-count {
+  font-size: 11px;
+  opacity: 0.5;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.live-filter-empty {
+  padding: 14px;
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.live-active-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.live-active-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px 4px 10px;
+  background: rgba(225, 29, 60, 0.12);
+  border: 1px solid rgba(225, 29, 60, 0.35);
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: capitalize;
+}
+
+.live-active-filter-chip button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(225, 29, 60, 0.25);
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.live-active-filter-chip button:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* --- Subtitle styling via CSS variables --- */
+
+.player-container {
+  --cue-font-size: 20px;
+  --cue-color: #ffffff;
+  --cue-bg: #000000;
+  --cue-bg-opacity: 0.5;
+  --cue-outline: #000000;
+  --cue-outline-width: 1px;
+  --cue-position: 85%;
+}
+
+.player-container::cue,
+.player-container video::cue {
+  font-size: var(--cue-font-size);
+  color: var(--cue-color);
+  background-color: color-mix(in srgb, var(--cue-bg) calc(var(--cue-bg-opacity) * 100%), transparent);
+  -webkit-text-stroke: var(--cue-outline-width) var(--cue-outline);
+  text-shadow:
+    var(--cue-outline-width) var(--cue-outline-width) 0 var(--cue-outline),
+    calc(-1 * var(--cue-outline-width)) var(--cue-outline-width) 0 var(--cue-outline),
+    var(--cue-outline-width) calc(-1 * var(--cue-outline-width)) 0 var(--cue-outline),
+    calc(-1 * var(--cue-outline-width)) calc(-1 * var(--cue-outline-width)) 0 var(--cue-outline);
+  line-height: 1.4;
+  font-family: system-ui, -apple-system, sans-serif;
+  white-space: pre-wrap;
+}
+
+.player-container::cue-region,
+.player-container video::cue-region {
+  line-height: 1.4;
+}
+
+/* Subtitle settings panel */
+.player-subtitle-settings {
+  width: 260px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.player-subtitle-settings-row {
+  padding: 6px 0;
+}
+
+.player-subtitle-settings-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.player-subtitle-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.player-subtitle-chip {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.player-subtitle-chip:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.player-subtitle-chip.is-active {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #fff;
+}
+
+.player-subtitle-color-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.player-subtitle-color-swatch:hover {
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.player-subtitle-color-swatch.is-active {
+  border-color: #fff;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.live-load-more-sentinel {
+  display: flex;
+  justify-content: center;
+  padding: 32px 0;
+}
+
+.live-category-count {
+  font-size: 10px;
+  font-weight: 700;
+  opacity: 0.65;
+  margin-left: 6px;
+}
+
+/* ===== Sports Page ===== */
+
+.sports-filter-bar {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.sports-pills-row {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  overflow-x: auto;
+  scrollbar-width: none;
+  white-space: nowrap;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sports-pills-row::-webkit-scrollbar {
+  display: none;
+}
+
+.sports-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.sports-refresh-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--chip-bg);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+  margin-left: auto;
+}
+
+.sports-refresh-btn:hover {
+  color: #fff;
+  border-color: var(--ring-hover);
+}
+
+.sports-content {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+/* --- Section --- */
+
+.sports-section {
+  position: relative;
+}
+
+.sports-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.sports-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.3px;
+}
+
+.sports-section--live .sports-section-title {
+  color: var(--accent);
+}
+
+.sports-section-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 8px;
+  border-radius: 100px;
+}
+
+.live-pulse {
+  color: var(--accent);
+  animation: pulse 2s infinite;
+}
+
+/* --- Match grid --- */
+
+.sports-match-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+/* --- Match card --- */
+
+.sports-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease;
+}
+
+.sports-card:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+}
+
+.sports-card--live {
+  border-color: rgba(225, 29, 60, 0.35);
+  background: linear-gradient(135deg, rgba(225, 29, 60, 0.06) 0%, var(--card) 60%);
+}
+
+.sports-card--live:hover {
+  border-color: rgba(225, 29, 60, 0.6);
+  box-shadow: 0 12px 30px rgba(225, 29, 60, 0.15);
+}
+
+.sports-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.sports-card-sport {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-muted);
+}
+
+.sports-card-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: rgba(239, 68, 68, 0.9);
+  border-radius: 100px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sports-card-time {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* --- Teams --- */
+
+.sports-card-teams {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 14px;
+  gap: 8px;
+}
+
+.sports-card-team {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.sports-card-team-badge {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.sports-card-team-badge img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sports-card-team-initial {
+  font-size: 20px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.sports-card-team-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.sports-card-vs {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}
+
+/* --- Bottom bar --- */
+
+.sports-card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.sports-card-countdown {
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.sports-card--live .sports-card-countdown {
+  color: var(--accent);
+}
+
+.sports-card-streams {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 8px;
+  border-radius: 100px;
+}
+
+/* --- Popular badge --- */
+
+.sports-card-popular {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.9), rgba(239, 68, 68, 0.9));
+  border-bottom-left-radius: 8px;
+  font-size: 9px;
+  font-weight: 800;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* --- Empty state --- */
+
+.sports-empty {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--text-muted);
+}
+
+.sports-empty-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- Spin animation --- */
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ===== Season Episode Rail ===== */
+
+.season-rail {
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  max-height: 70vh;
+}
+
+/* Season dropdown */
+.season-rail-dropdown {
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.season-rail-dropdown-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.season-rail-dropdown-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  transition: color 0.2s ease;
+}
+
+.season-rail-dropdown-trigger:hover .season-rail-dropdown-label {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.season-rail-dropdown-trigger svg {
+  color: rgba(255, 255, 255, 0.4);
+  transition: color 0.2s ease;
+}
+
+.season-rail-dropdown-trigger:hover svg {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.season-rail-dropdown-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  z-index: 30;
+  width: 220px;
+  background: #0e0e12;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0 !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+  padding: 0;
+  animation: dropdown-in 0.15s ease;
+}
+
+.season-rail-dropdown-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  text-align: left;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 0 !important;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.season-rail-dropdown-option:last-child {
+  border-bottom: none;
+}
+
+.season-rail-dropdown-option:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.season-rail-dropdown-option.is-active {
+  background: rgba(225, 29, 60, 0.12);
+  color: var(--accent);
+  border-left: 2px solid var(--accent);
+}
+
+.season-rail-dropdown-count {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.35);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.season-rail-dropdown-option.is-active .season-rail-dropdown-count {
+  color: rgba(225, 29, 60, 0.6);
+}
+
+@keyframes dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Episode list — original stacked style, scrollable */
+.season-rail-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  /* mask scroll hint */
+  mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
+}
+
+.season-rail-list::-webkit-scrollbar {
+  width: 3px;
+}
+
+.season-rail-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.season-rail-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+}
+
+.season-rail-loading {
+  display: flex;
+  justify-content: center;
+  padding: 40px 0;
+}
+
+/* Episode item — stacked, matches original rail-item */
+.season-rail-item {
+  display: block;
+  text-decoration: none;
+  color: var(--text);
+}
+
+/* Thumbnail — full width like original */
+.season-rail-thumb {
+  position: relative;
+  width: 100%;
+  height: 90px;
+  background: var(--card);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+}
+
+.season-rail-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.season-rail-item:hover .season-rail-thumb img {
+  transform: scale(1.05);
+}
+
+.season-rail-thumb-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.15);
+}
+
+.season-rail-thumb-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, 0.75) 100%);
+}
+
+.season-rail-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #000;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  padding-left: 2px;
+}
+
+.season-rail-item:hover .season-rail-play {
+  opacity: 1;
+}
+
+.season-rail-ep-num {
+  position: absolute;
+  left: 10px;
+  bottom: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+/* Title below thumbnail — matches original sublabel */
+.season-rail-name {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* ===== RESPONSIVE BASE ===== */
+
+html {
+  overflow-x: hidden;
+}
+
+body {
+  overflow-x: hidden;
+  touch-action: manipulation;
+}
+
+button, a {
+  touch-action: manipulation;
+}
+
+/* ===== MOBILE BREAKPOINT (max-width: 767px) ===== */
+
+@media (max-width: 767px) {
+  /* Navbar: hide desktop links, show hamburger */
+  .nav-links-desktop { display: none !important; }
+  .nav-hamburger { display: flex !important; }
+  .nav-mobile-menu { display: flex !important; }
+
+  /* Hero sections: fluid min-height */
+  .hero-content-anim { min-height: 0 !important; }
+
+  /* Carousel arrows: hide on touch, users scroll naturally */
+  .carousel-arrow { display: none !important; }
+
+  /* Player: settings panels become bottom sheets */
+  .player-settings-panel {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-height: 50vh !important;
+    border-radius: 12px 12px 0 0 !important;
+    z-index: 100 !important;
+  }
+
+  .player-subtitle-settings {
+    width: 100% !important;
+    max-height: 50vh !important;
+  }
+
+  /* Player: thicker progress bar for touch */
+  .player-progress-track { height: 6px; }
+  .player-progress-track:hover { height: 8px; }
+
+  /* Player: hide non-essential buttons */
+  .player-volume-slider { display: none !important; }
+  .player-btn-screenshot { display: none !important; }
+  .player-btn-pip { display: none !important; }
+
+  /* Player: smaller title overlay */
+  .player-idle-overlay { padding: 24px 12px 16px !important; }
+
+  /* Season rail: full width horizontal strip */
+  .season-rail {
+    width: 100% !important;
+    max-height: none !important;
+  }
+
+  .hero-rail {
+    width: 100% !important;
+  }
+
+  .hero-rail > div {
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    gap: 8px !important;
+    padding-bottom: 8px;
+  }
+
+  .hero-rail .rail-item {
+    flex: 0 0 140px;
+  }
+
+  .season-rail-list {
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    gap: 8px !important;
+    padding-bottom: 8px;
+    mask-image: none !important;
+    -webkit-mask-image: none !important;
+  }
+
+  .season-rail-item {
+    flex: 0 0 140px;
+  }
+
+  .season-rail-thumb {
+    height: 70px !important;
+  }
+
+  .season-rail-dropdown-panel {
+    width: 100% !important;
+  }
+
+  /* Sports: smaller card grid */
+  .sports-match-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  .sports-filter-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+
+  /* Live filter panel: full width */
+  .live-filter-panel {
+    width: 100% !important;
+    position: fixed !important;
+    left: 0 !important;
+    top: auto !important;
+    bottom: 0 !important;
+    border-radius: 12px 12px 0 0 !important;
+    z-index: 100 !important;
+  }
+
+  /* Live channel grid: smaller cards */
+  .live-channel-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
+    gap: 12px !important;
+  }
+
+  /* Section headings: smaller on mobile */
+  .section-heading { font-size: 17px !important; }
+
+  /* Buttons: slightly smaller padding */
+  .btn-square-accent, .btn-ghost, .btn-square {
+    padding: 10px 20px !important;
+    font-size: 13px !important;
+  }
+
+  /* Carousel cards: narrower on mobile */
+  .carousel-row { --card-w: 110px; }
+  .carousel-track { gap: 8px !important; }
+
+  /* Continue watching: smaller cards on mobile */
+  .carousel-track { --cw-w: 160px; }
+
+  /* Media card text: smaller on mobile */
+  .media-card p { font-size: 11px !important; }
+}
+
+/* ===== TABLET BREAKPOINT (768px - 1023px) ===== */
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .nav-links-desktop { display: flex !important; }
+  .nav-hamburger { display: none !important; }
+  .nav-mobile-menu { display: none !important; }
+
+  /* Carousel arrows: show on hover for pointer devices */
+  .carousel-arrow { display: flex; }
+
+  /* Season rail: narrower */
+  .season-rail { width: 200px; }
+
+  /* Sports: medium grid */
+  .sports-match-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
+  }
+}
+
+/* ===== DESKTOP (min-width: 1024px) ===== */
+
+@media (min-width: 1024px) {
+  .nav-links-desktop { display: flex !important; }
+  .nav-hamburger { display: none !important; }
+  .nav-mobile-menu { display: none !important; }
+}
+
+/* ===== TOUCH DEVICE ADJUSTMENTS ===== */
+
+@media (pointer: coarse) {
+  .carousel-arrow { opacity: 0 !important; }
+  .carousel-row:hover .carousel-arrow { opacity: 0 !important; }
+}

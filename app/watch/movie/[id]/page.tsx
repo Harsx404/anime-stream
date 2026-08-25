@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getMovieDetails, tmdbImage } from "@/lib/tmdb";
+import { getMovieDetails, tmdbImage, getLogoUrl } from "@/lib/tmdb";
 import CineplayWatchClient from "@/components/CineplayWatchClient";
 import WatchBreadcrumb from "@/components/WatchBreadcrumb";
 
@@ -20,7 +20,7 @@ export default async function MovieWatchPage({ params }: Props) {
     : undefined;
 
   return (
-    <div style={{ maxWidth: 1400, margin: "0 auto", padding: "16px" }}>
+    <div style={{ maxWidth: 1400, margin: "0 auto", padding: "clamp(8px, 2vw, 16px)" }}>
       <WatchBreadcrumb
         backHref={`/movie/${tmdbId}`}
         backLabel={movie.title}
@@ -33,6 +33,7 @@ export default async function MovieWatchPage({ params }: Props) {
         year={year}
         imdbId={movie.imdb_id}
         poster={movie.backdrop_path ? tmdbImage(movie.backdrop_path, "w1280") : undefined}
+        titleLogo={getLogoUrl(movie.images)}
         description={movie.overview}
       />
     </div>

@@ -5,6 +5,7 @@ import type { Level } from "hls.js";
 import { getWatchProgress, updatePlaybackPosition } from "@/lib/history";
 import { useMiruroSources } from "@/lib/use-miruro";
 import PlayerChrome, { type SettingsGroup } from "@/components/player/PlayerChrome";
+import { type SubtitleConfig, loadSubtitleConfig, saveSubtitleConfig, applySubtitleConfig } from "@/lib/subtitle-config";
 
 interface Props {
   episodeId: string;
@@ -83,9 +84,20 @@ export default function VideoPlayer({
   const [selectedHlsLevel, setSelectedHlsLevel] = useState(-1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [subtitleConfig, setSubtitleConfig] = useState<SubtitleConfig>(() => loadSubtitleConfig());
 
   useEffect(() => { setLoading(sourcesLoading); }, [sourcesLoading]);
   useEffect(() => { setError(sourcesError); }, [sourcesError]);
+
+  useEffect(() => {
+    if (containerRef.current) applySubtitleConfig(containerRef.current, subtitleConfig);
+  }, [subtitleConfig]);
+
+  const handleSubtitleConfigChange = useCallback((config: SubtitleConfig) => {
+    setSubtitleConfig(config);
+    saveSubtitleConfig(config);
+    if (containerRef.current) applySubtitleConfig(containerRef.current, config);
+  }, []);
 
   useEffect(() => {
     if (!sources) return;
@@ -281,7 +293,7 @@ export default function VideoPlayer({
         <video ref={videoRef} className="w-full h-full" crossOrigin="anonymous" playsInline poster={posterUrl}>
           {sources?.subs?.map((sub, i) => (
             <track key={i} kind="subtitles" label={sub.lang}
-              src={`/api/hls?url=${encodeURIComponent(sub.url)}`}
+              src={`/api/sub-proxy?url=${encodeURIComponent(sub.url)}`}
               default={i === activeSub} />
           ))}
         </video>
@@ -297,6 +309,10 @@ export default function VideoPlayer({
           error={error || undefined}
           isTheater={isTheater}
           onTheaterToggle={onTheaterToggle}
+          subtitleConfig={subtitleConfig}
+          onSubtitleConfigChange={handleSubtitleConfigChange}
+          anilistId={anilistId}
+          episodeNumber={episode}
         />
       </div>
 

@@ -15,7 +15,7 @@ export default function MyListPage() {
   }, []);
 
   return (
-    <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px 16px" }}>
+    <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px clamp(12px, 3vw, 16px)" }}>
       <h1 className="section-heading" style={{ fontSize: 24 }}>My List</h1>
 
       {items.length === 0 ? (
@@ -26,8 +26,8 @@ export default function MyListPage() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
-            gap: 16,
+            gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))",
+            gap: "clamp(8px, 2vw, 16px)",
           }}
         >
           {items.map((item) => (

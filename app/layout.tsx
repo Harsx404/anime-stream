@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import { anton } from "@/lib/fonts";
@@ -6,6 +6,13 @@ import { anton } from "@/lib/fonts";
 export const metadata: Metadata = {
   title: "KINOVA",
   description: "Stream anime, movies, and TV shows in one place.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -21,7 +28,7 @@ export default function RootLayout({
         <footer
           style={{
             borderTop: "1px solid var(--ring)",
-            padding: "32px 24px",
+            padding: "clamp(20px, 4vw, 32px) clamp(16px, 4vw, 24px)",
             textAlign: "center",
             background: "#000",
           }}

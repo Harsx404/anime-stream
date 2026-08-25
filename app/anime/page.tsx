@@ -80,7 +80,7 @@ export default async function AnimeCatalogPage({ searchParams }: Props) {
     <div>
       {heroItems.length > 0 && <HeroCarousel items={heroItems} eyebrow="Trending Now" />}
 
-      <div style={{ maxWidth: 1400, margin: "0 auto", padding: "0 16px 24px" }}>
+      <div style={{ maxWidth: 1400, margin: "0 auto", padding: "0 clamp(12px, 3vw, 16px) 24px" }}>
         <CarouselRow title="Trending" accentWord="Anime" items={trending.map(fromAnime)} />
         <CarouselRow title="Popular" accentWord="This Season" items={seasonal.map(fromAnime)} />
         <CarouselRow title="All-Time" accentWord="Popular" items={allTime.map(fromAnime)} />

@@ -25,8 +25,8 @@ export default function VideoHero() {
       style={{
         position: "relative",
         width: "100%",
-        height: "100vh",
-        minHeight: 600,
+        height: "100svh",
+        minHeight: "clamp(420px, 70vh, 600px)",
         overflow: "hidden",
         background: "#000",
       }}
@@ -64,7 +64,7 @@ export default function VideoHero() {
           flexDirection: "column",
           justifyContent: "center",
           padding: "0 clamp(16px, 5vw, 80px)",
-          maxWidth: 900,
+          maxWidth: "min(900px, 100%)",
         }}
       >
         <span
@@ -127,8 +127,9 @@ export default function VideoHero() {
         <div
           style={{
             display: "flex",
-            gap: 24,
-            marginTop: 40,
+            flexWrap: "wrap",
+            gap: "12px 24px",
+            marginTop: "clamp(20px, 4vw, 40px)",
             color: "var(--text-muted)",
             fontSize: 13,
             fontFamily: "monospace",

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { Search, Heart, X } from "lucide-react";
+import { Search, Heart, X, Settings, Menu } from "lucide-react";
 import { anton } from "@/lib/fonts";
 import { getWatchlistCount, WATCHLIST_EVENT } from "@/lib/watchlist";
 
@@ -11,6 +11,8 @@ const NAV_LINKS = [
   { href: "/movies", label: "Movies" },
   { href: "/tv", label: "TV Shows" },
   { href: "/anime", label: "Anime" },
+  { href: "/live", label: "Live TV" },
+  { href: "/sports", label: "Sports" },
   { href: "/browse", label: "Browse" },
 ];
 
@@ -18,10 +20,16 @@ export default function Navbar() {
   const [query, setQuery] = useState("");
   const [searchType, setSearchType] = useState<"anime" | "movie" | "tv">("anime");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [watchlistCount, setWatchlistCount] = useState(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -46,6 +54,7 @@ export default function Navbar() {
   }
 
   return (
+    <>
     <nav
       style={{
         position: "sticky",
@@ -54,7 +63,7 @@ export default function Navbar() {
         display: "flex",
         alignItems: "center",
         gap: 24,
-        padding: "14px 24px",
+        padding: "14px clamp(12px, 4vw, 24px)",
         borderBottom: `1px solid ${scrolled ? "var(--ring)" : "transparent"}`,
         background: scrolled ? "rgba(0,0,0,0.92)" : "rgba(0,0,0,0.0)",
         backdropFilter: scrolled ? "blur(12px)" : "none",
@@ -66,7 +75,7 @@ export default function Navbar() {
         <span style={{ color: "var(--accent)" }}>VA</span>
       </a>
 
-      <div style={{ display: "flex", gap: 20, flex: 1 }}>
+      <div className="nav-links-desktop" style={{ display: "flex", gap: 20, flex: 1 }}>
         {NAV_LINKS.map((link) => {
           const active = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
           return (
@@ -89,19 +98,60 @@ export default function Navbar() {
         })}
       </div>
 
+      <button
+        className="nav-hamburger"
+        onClick={() => setMobileMenuOpen((v) => !v)}
+        aria-label="Menu"
+        style={{
+          display: "none",
+          alignItems: "center",
+          justifyContent: "center",
+          width: 36,
+          height: 36,
+          background: "transparent",
+          border: "1px solid var(--ring)",
+          color: "var(--text)",
+          cursor: "pointer",
+          flex: 1,
+          maxWidth: 36,
+        }}
+      >
+        {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+      </button>
+
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
         {searchOpen ? (
-          <form onSubmit={onSearch} style={{ display: "flex", alignItems: "center", gap: 0 }}>
+          <form 
+            onSubmit={onSearch} 
+            style={{ 
+              display: "flex", 
+              alignItems: "stretch", 
+              height: 36,
+              gap: 0,
+              border: `1px solid ${isFocused ? "var(--text)" : "var(--ring)"}`,
+              transition: "border-color 0.2s ease",
+              flex: 1,
+              maxWidth: 280,
+            }}
+            onFocus={() => setIsFocused(true)}
+            onBlur={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                setIsFocused(false);
+              }
+            }}
+          >
             <select
               value={searchType}
               onChange={(e) => setSearchType(e.target.value as "anime" | "movie" | "tv")}
               style={{
-                padding: "7px 6px",
-                border: "1px solid var(--ring)",
-                borderRight: "none",
+                padding: "0 10px",
+                border: "none",
+                borderRight: "1px solid var(--ring)",
                 background: "var(--card)",
                 color: "var(--text)",
                 fontSize: 12,
+                outline: "none",
+                flexShrink: 0,
               }}
             >
               <option value="anime">Anime</option>
@@ -115,14 +165,14 @@ export default function Navbar() {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search..."
               style={{
-                width: 200,
-                padding: "7px 10px",
-                border: "1px solid var(--ring)",
-                borderLeft: "none",
-                borderRight: "none",
+                width: "100%",
+                minWidth: 0,
+                padding: "0 12px",
+                border: "none",
                 background: "var(--card)",
                 color: "var(--text)",
                 fontSize: 13,
+                outline: "none"
               }}
             />
             <button
@@ -133,11 +183,13 @@ export default function Navbar() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                padding: "8px 10px",
-                border: "1px solid var(--ring)",
+                padding: "0 10px",
+                border: "none",
                 background: "var(--card)",
                 color: "var(--text-muted)",
                 cursor: "pointer",
+                outline: "none",
+                flexShrink: 0,
               }}
             >
               <X size={14} />
@@ -203,7 +255,71 @@ export default function Navbar() {
             </span>
           )}
         </a>
+
+        <a
+          href="/settings"
+          aria-label="Settings"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 36,
+            height: 36,
+            border: "1px solid var(--ring)",
+            color: pathname === "/settings" ? "var(--accent)" : "var(--text)",
+            transition: "border-color 0.2s ease",
+          }}
+        >
+          <Settings size={16} />
+        </a>
       </div>
     </nav>
+
+      {mobileMenuOpen && (
+        <div
+          className="nav-mobile-menu"
+          style={{
+            display: "none",
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 49,
+            paddingTop: 64,
+            paddingBottom: 24,
+            paddingLeft: "clamp(12px, 4vw, 24px)",
+            paddingRight: "clamp(12px, 4vw, 24px)",
+            background: "rgba(0,0,0,0.97)",
+            backdropFilter: "blur(12px)",
+            borderBottom: "1px solid var(--ring)",
+            flexDirection: "column",
+            gap: 0,
+          }}
+        >
+          {NAV_LINKS.map((link) => {
+            const active = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
+            return (
+              <a
+                key={link.href}
+                href={link.href}
+                style={{
+                  fontSize: 16,
+                  fontWeight: 600,
+                  letterSpacing: 0.5,
+                  textTransform: "uppercase",
+                  color: active ? "#fff" : "var(--text-muted)",
+                  padding: "14px 0",
+                  borderBottom: "1px solid rgba(255,255,255,0.06)",
+                  borderLeft: active ? "3px solid var(--accent)" : "3px solid transparent",
+                  paddingLeft: 12,
+                }}
+              >
+                {link.label}
+              </a>
+            );
+          })}
+        </div>
+      )}
+    </>
   );
 }

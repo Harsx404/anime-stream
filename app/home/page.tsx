@@ -95,7 +95,7 @@ export default async function HomePage() {
     <div>
       {heroItems.length > 0 && <HeroCarousel items={heroItems} eyebrow="Trending Now" />}
 
-      <div style={{ maxWidth: 1400, margin: "0 auto", padding: "0 16px 24px" }}>
+      <div style={{ maxWidth: 1400, margin: "0 auto", padding: "0 clamp(12px, 3vw, 16px) 24px" }}>
         <ContinueWatching />
         <CarouselRow
           title="Trending"

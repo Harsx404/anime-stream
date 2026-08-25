@@ -23,13 +23,13 @@ export default function ContinueWatching() {
             <a
               key={`${item.kind}-${item.id}-${item.season || 0}-${item.episode || 0}`}
               href={item.href}
-              style={{ display: "block", width: 200, flexShrink: 0 }}
+              style={{ display: "block", width: "var(--cw-w, 200px)", flexShrink: 0 }}
             >
               <div
                 style={{
                   position: "relative",
-                  width: 200,
-                  height: 112,
+                  width: "var(--cw-w, 200px)",
+                  height: "calc(var(--cw-w, 200px) * 0.56)",
                   overflow: "hidden",
                   border: "1px solid var(--border)",
                   background: "var(--card)",
@@ -40,7 +40,7 @@ export default function ContinueWatching() {
                     src={item.cover}
                     alt={item.title}
                     fill
-                    sizes="200px"
+                    sizes="(max-width: 767px) 160px, 200px"
                     className="object-cover"
                   />
                 )}

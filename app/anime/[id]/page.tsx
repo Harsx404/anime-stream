@@ -45,7 +45,7 @@ export default async function AnimePage({ params }: Props) {
         railSlot={<AnimeEpisodeRail anilistId={anilistId} fallbackImage={anime.coverImage.large} />}
       />
 
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 16px 24px" }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 clamp(12px, 3vw, 16px) 24px" }}>
         <EpisodeGrid anilistId={anilistId} anime={anime} />
       </div>
     </div>

@@ -22,7 +22,7 @@ export default async function SearchPage({ searchParams }: Props) {
 
   if (!query) {
     return (
-      <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px 16px" }}>
+      <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px clamp(12px, 3vw, 16px)" }}>
         <p style={{ color: "var(--text-muted)" }}>Enter a search query.</p>
       </div>
     );
@@ -56,14 +56,14 @@ export default async function SearchPage({ searchParams }: Props) {
     }
   } catch {
     return (
-      <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px 16px" }}>
+      <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px clamp(12px, 3vw, 16px)" }}>
         <p style={{ color: "#f87171" }}>Search failed. Try again.</p>
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px 16px" }}>
+    <div style={{ maxWidth: 1400, margin: "0 auto", padding: "24px clamp(12px, 3vw, 16px)" }}>
       <h1 className="section-heading" style={{ fontSize: 22 }}>
         Results for &ldquo;{query}&rdquo; <span style={{ color: "var(--text-muted)", fontWeight: 400, fontSize: 15 }}>({total})</span>
       </h1>
