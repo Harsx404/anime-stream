@@ -102,6 +102,14 @@ export async function GET(req: Request) {
       headers["Referer"] = `${targetObj.protocol}//${targetObj.host}/`;
       headers["Origin"] = `${targetObj.protocol}//${targetObj.host}`;
     }
+    // Add Api-Key for OpenSubtitles V3 API download URLs
+    if (targetObj.hostname.includes("opensubtitles.com")) {
+      const osKey = process.env.OPENSUBTITLES_API_KEY;
+      if (osKey) {
+        headers["Api-Key"] = osKey;
+        headers["Authorization"] = `Bearer ${osKey}`;
+      }
+    }
 
     let resp: Response | null = null;
     let lastError: any = null;
