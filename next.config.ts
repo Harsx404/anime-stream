@@ -27,6 +27,13 @@ const streamingRewrites = isVercel
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["wreq-js"],
+  // wreq-js resolves its native .node binary with a dynamic require() at call time,
+  // which Vercel's static file tracer can't follow — without this it's dropped from
+  // the deployed function bundle and every request fails instantly with no network call.
+  outputFileTracingIncludes: {
+    "/api/episodes/[anilistId]": ["./node_modules/wreq-js/rust/*.node"],
+    "/api/sources": ["./node_modules/wreq-js/rust/*.node"],
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "s4.anilist.co" },
