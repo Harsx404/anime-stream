@@ -95,20 +95,13 @@ function headersForProfile(profile: string): Record<string, string> {
 
 const BROWSER_PROFILES = ["chrome_131", "chrome_120", "chrome_110"];
 
-let wreqFetch: ((url: string, init?: any) => Promise<any>) | null = null;
-
-async function getWreqFetch() {
-  if (wreqFetch) return wreqFetch;
-  const wreq = await import("wreq-js");
-  wreqFetch = (wreq as any).fetch;
-  return wreqFetch;
-}
+import { fetch as wreqFetch } from "wreq-js";
 
 async function pipeGet(
   path: string,
   query: Record<string, any>,
 ): Promise<any> {
-  const fetchFn = await getWreqFetch();
+  const fetchFn = wreqFetch;
   if (!fetchFn) throw new Error("wreq-js fetch not initialized");
 
   const payload = { path, method: "GET", query, body: null, version: "0.1.0" };
