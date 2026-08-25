@@ -156,7 +156,7 @@ export default async function LandingPage() {
             >
               Popular <span style={{ color: "var(--accent)" }}>Movies</span>
             </h3>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(90px, 1fr))", gap: 8 }}>
               {popularMovies.slice(0, 3).map((m) => {
                 const item = fromTMDB(m, "movie", movieGenreMap);
                 return (
@@ -190,7 +190,7 @@ export default async function LandingPage() {
             >
               Top Rated <span style={{ color: "var(--accent)" }}>TV</span>
             </h3>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(90px, 1fr))", gap: 8 }}>
               {topRatedTV.slice(0, 3).map((t) => {
                 const item = fromTMDB(t, "tv", tvGenreMap);
                 return (

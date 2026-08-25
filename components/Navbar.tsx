@@ -62,7 +62,7 @@ export default function Navbar() {
         zIndex: 50,
         display: "flex",
         alignItems: "center",
-        gap: 24,
+        gap: "clamp(8px, 3vw, 24px)",
         padding: "14px clamp(12px, 4vw, 24px)",
         borderBottom: `1px solid ${scrolled ? "var(--ring)" : "transparent"}`,
         background: scrolled ? "rgba(0,0,0,0.92)" : "rgba(0,0,0,0.0)",
@@ -119,19 +119,20 @@ export default function Navbar() {
         {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
       </button>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
         {searchOpen ? (
-          <form 
-            onSubmit={onSearch} 
-            style={{ 
-              display: "flex", 
-              alignItems: "stretch", 
+          <form
+            onSubmit={onSearch}
+            style={{
+              display: "flex",
+              alignItems: "stretch",
               height: 36,
               gap: 0,
               border: `1px solid ${isFocused ? "var(--text)" : "var(--ring)"}`,
               transition: "border-color 0.2s ease",
               flex: 1,
-              maxWidth: 280,
+              minWidth: 0,
+              maxWidth: "min(280px, 55vw)",
             }}
             onFocus={() => setIsFocused(true)}
             onBlur={(e) => {
