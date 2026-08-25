@@ -50,26 +50,43 @@ async function solve(): Promise<SolvedChallenge | null> {
   let browser: import("puppeteer-core").Browser | undefined;
   try {
     browser = await puppeteer.launch({
-      args: chromium.args,
+      args: [...chromium.args, "--disable-blink-features=AutomationControlled"],
       executablePath: await chromium.executablePath(),
       headless: true,
     });
 
     const page = await browser.newPage();
     const userAgent = await browser.userAgent();
+
+    // Puppeteer's default headless Chromium exposes automation fingerprints
+    // (navigator.webdriver, missing chrome.runtime, etc.) that Cloudflare's
+    // bot-management score checks independently of the JS-timing challenge.
+    // Patch the obvious ones before any page script runs.
+    await page.evaluateOnNewDocument(() => {
+      Object.defineProperty(navigator, "webdriver", { get: () => undefined });
+      // @ts-expect-error - injecting a stub for a browser-only global
+      window.chrome = { runtime: {} };
+      Object.defineProperty(navigator, "languages", { get: () => ["en-US", "en"] });
+      Object.defineProperty(navigator, "plugins", { get: () => [1, 2, 3, 4, 5] });
+    });
+
     await page.goto(CHALLENGE_URL, { waitUntil: "domcontentloaded", timeout: 25000 });
 
-    const deadline = Date.now() + 20000;
+    const deadline = Date.now() + 25000;
+    let lastTitle = "";
     while (Date.now() < deadline) {
-      const title = await page.title().catch(() => "");
-      if (!title.toLowerCase().includes("just a moment")) break;
+      lastTitle = await page.title().catch(() => "");
+      const hasClearance = (await page.cookies()).some((c) => c.name === "cf_clearance");
+      if (hasClearance || !lastTitle.toLowerCase().includes("just a moment")) break;
       await new Promise((r) => setTimeout(r, 1000));
     }
 
     const cookies = await page.cookies();
     const clearance = cookies.find((c) => c.name === "cf_clearance");
     if (!clearance) {
-      console.error("[CF Solver] No cf_clearance cookie after solve attempt");
+      console.error(
+        `[CF Solver] No cf_clearance after solve attempt. title="${lastTitle}" url="${page.url()}" cookies=[${cookies.map((c) => c.name).join(",")}]`,
+      );
       return null;
     }
 
