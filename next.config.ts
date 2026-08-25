@@ -18,8 +18,8 @@ const streamingRewrites = isVercel
       { source: "/api/zxcstreams", destination: `${RENDER_API_BASE}/api/zxcstreams` },
       { source: "/api/hdghartv", destination: `${RENDER_API_BASE}/api/hdghartv` },
       { source: "/api/4khdhub", destination: `${RENDER_API_BASE}/api/4khdhub` },
-      { source: "/api/sources", destination: `${RENDER_API_BASE}/api/sources` },
-      { source: "/api/episodes/:path*", destination: `${RENDER_API_BASE}/api/episodes/:path*` },
+      // episodes and sources use Miruro API which is blocked by Cloudflare on Render IPs
+      // These run on Vercel serverless instead
       { source: "/api/iptv/:path*", destination: `${RENDER_API_BASE}/api/iptv/:path*` },
       { source: "/api/sports/:path*", destination: `${RENDER_API_BASE}/api/sports/:path*` },
     ]

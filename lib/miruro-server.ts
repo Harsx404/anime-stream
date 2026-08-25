@@ -125,6 +125,7 @@ async function pipeGet(
         resp = await fetchFn(url, {
           browser: profile,
           headers: headersForProfile(profile),
+          timeout: 15000,
         });
       } catch (e: any) {
         lastError = `wreq-js error with ${profile}: ${String(e)}`;
