@@ -93,7 +93,7 @@ async function pipeGet(
   const fetchFn = await getWreqFetch();
   if (!fetchFn) throw new Error("wreq-js fetch not initialized");
 
-  const payload = { path, method: "GET", query, body: null, version: "0.2.0" };
+  const payload = { path, method: "GET", query, body: null, version: "0.1.0" };
   const encoded = base64urlEncode(payload);
   const url = `${PIPE_BASE}?e=${encoded}`;
 
@@ -189,9 +189,11 @@ export async function getMiruroEpisodes(
   anilistId: number,
 ): Promise<MiruroEpisodesResponse | null> {
   try {
-    return await pipeGet("episodes", { anilistId: String(anilistId) });
+    const data = await pipeGet("episodes", { anilistId: String(anilistId) });
+    console.log(`[Miruro] Episodes for ${anilistId}: providers=${Object.keys(data?.providers || {}).join(",") || "none"}`);
+    return data;
   } catch (e) {
-    console.error("Miruro episodes error:", e);
+    console.error(`[Miruro] Episodes error for ${anilistId}:`, String(e));
     return null;
   }
 }
