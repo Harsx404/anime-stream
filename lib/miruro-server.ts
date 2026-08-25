@@ -116,7 +116,7 @@ async function pipeGet(
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         resp = await fetchFn(url, {
-          browser: profile,
+          browser: profile as any,
           headers: headersForProfile(profile),
           timeout: 10000,
         });
