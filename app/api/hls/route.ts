@@ -72,7 +72,12 @@ function responseContentType(targetUrl: string, upstreamContentType: string): st
 }
 
 export async function GET(req: Request) {
-  const { searchParams, origin } = new URL(req.url);
+  const reqUrl = new URL(req.url);
+  const searchParams = reqUrl.searchParams;
+  // Use Host header to construct origin (fixes 0.0.0.0 in dev, and ensures correct domain in production)
+  const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || reqUrl.host;
+  const forwardedProto = req.headers.get("x-forwarded-proto") || reqUrl.protocol.replace(":", "");
+  const origin = `${forwardedProto}://${host}`;
   const targetUrl = searchParams.get("url");
   const referer = searchParams.get("referer");
 
