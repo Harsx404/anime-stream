@@ -28,7 +28,11 @@ const nextConfig: NextConfig = {
     ],
   },
   async rewrites() {
-    return streamingRewrites;
+    return {
+      beforeFiles: streamingRewrites,
+      afterFiles: [],
+      fallback: [],
+    };
   },
 };
 
