@@ -59,7 +59,22 @@ async function hlsSubPlaylistToVtt(playlistUrl: string, playlistText: string): P
     try {
       const segObj = new URL(segUrl);
       const segHeaders: Record<string, string> = { "User-Agent": UA, Accept: "*/*" };
-      if (segObj.hostname.includes("peakstorm.top") || segObj.hostname.includes("moon.")) {
+      const segRefererMap: Record<string, string> = {
+        "moon.peakstorm.top": "https://www.vidking.net/",
+        "keenanchor.top": "https://www.vidking.net/",
+        "vidlink.pro": "https://vidlink.pro/",
+        "vixsrc.to": "https://vixsrc.to/",
+      };
+      let segRefSet = false;
+      for (const [domain, ref] of Object.entries(segRefererMap)) {
+        if (segObj.hostname === domain || segObj.hostname.endsWith("." + domain)) {
+          segHeaders["Referer"] = ref;
+          segHeaders["Origin"] = new URL(ref).origin;
+          segRefSet = true;
+          break;
+        }
+      }
+      if (!segRefSet && (segObj.hostname.includes("peakstorm.top") || segObj.hostname.includes("moon."))) {
         segHeaders["Referer"] = `${segObj.protocol}//${segObj.host}/`;
         segHeaders["Origin"] = `${segObj.protocol}//${segObj.host}`;
       }
@@ -97,8 +112,23 @@ export async function GET(req: Request) {
       Accept: "*/*",
       "Accept-Language": "en-US,en;q=0.9",
     };
-    // Add Referer for CDN hosts that require it
-    if (targetObj.hostname.includes("peakstorm.top") || targetObj.hostname.includes("moon.")) {
+    // Add Referer for CDN hosts that require it (must match HLS route referer mapping)
+    const DOMAIN_REFERER_MAP: Record<string, string> = {
+      "moon.peakstorm.top": "https://www.vidking.net/",
+      "keenanchor.top": "https://www.vidking.net/",
+      "vidlink.pro": "https://vidlink.pro/",
+      "vixsrc.to": "https://vixsrc.to/",
+    };
+    let refererSet = false;
+    for (const [domain, ref] of Object.entries(DOMAIN_REFERER_MAP)) {
+      if (targetObj.hostname === domain || targetObj.hostname.endsWith("." + domain)) {
+        headers["Referer"] = ref;
+        headers["Origin"] = new URL(ref).origin;
+        refererSet = true;
+        break;
+      }
+    }
+    if (!refererSet && (targetObj.hostname.includes("peakstorm.top") || targetObj.hostname.includes("moon."))) {
       headers["Referer"] = `${targetObj.protocol}//${targetObj.host}/`;
       headers["Origin"] = `${targetObj.protocol}//${targetObj.host}`;
     }
