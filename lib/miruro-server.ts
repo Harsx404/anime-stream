@@ -61,21 +61,39 @@ function decodeResponse(text: string, obfuscated: string | null): any {
 
 // --- wreq-js HTTP client ---
 
-const MIRURO_HEADERS: Record<string, string> = {
-  "User-Agent":
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36",
-  Referer: "https://www.miruro.ru/",
-  Origin: "https://www.miruro.ru",
-  Accept: "*/*",
-  "Accept-Language": "en-US,en;q=0.9",
-  "Accept-Encoding": "gzip, deflate, br",
-  "sec-fetch-site": "same-origin",
-  "sec-fetch-mode": "cors",
-  "sec-fetch-dest": "empty",
-  "sec-ch-ua": '"Chromium";v="110", "Not A(Brand";v="24", "Google Chrome";v="110"',
-  "sec-ch-ua-mobile": "?0",
-  "sec-ch-ua-platform": '"Windows"',
-};
+function headersForProfile(profile: string): Record<string, string> {
+  const versions: Record<string, { ua: string; chua: string }> = {
+    chrome_131: {
+      ua: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+      chua: '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+    },
+    chrome_120: {
+      ua: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      chua: '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+    },
+    chrome_110: {
+      ua: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36",
+      chua: '"Chromium";v="110", "Not A(Brand";v="24", "Google Chrome";v="110"',
+    },
+  };
+  const v = versions[profile] || versions.chrome_131;
+  return {
+    "User-Agent": v.ua,
+    Referer: "https://www.miruro.ru/",
+    Origin: "https://www.miruro.ru",
+    Accept: "*/*",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "sec-fetch-site": "same-origin",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-dest": "empty",
+    "sec-ch-ua": v.chua,
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": '"Windows"',
+  };
+}
+
+const BROWSER_PROFILES = ["chrome_131", "chrome_120", "chrome_110"];
 
 let wreqFetch: ((url: string, init?: any) => Promise<any>) | null = null;
 
@@ -99,29 +117,48 @@ async function pipeGet(
 
   let resp: any;
   let lastError = "";
+  let profileUsed = "";
 
-  for (let attempt = 0; attempt < 3; attempt++) {
-    resp = await fetchFn(url, {
-      browser: "chrome_110",
-      headers: MIRURO_HEADERS,
-    });
+  for (const profile of BROWSER_PROFILES) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        resp = await fetchFn(url, {
+          browser: profile,
+          headers: headersForProfile(profile),
+        });
+      } catch (e: any) {
+        lastError = `wreq-js error with ${profile}: ${String(e)}`;
+        continue;
+      }
 
-    if (resp.status === 200) break;
+      if (resp.status === 200) {
+        profileUsed = profile;
+        console.log(`[Miruro] Success with profile ${profile}`);
+        break;
+      }
 
-    const text = await resp.text();
-    lastError = `Miruro API error: HTTP ${resp.status} - ${text.substring(0, 200)}`;
+      const text = await resp.text();
+      lastError = `Miruro API error: HTTP ${resp.status} - ${text.substring(0, 200)}`;
 
-    // Retry on 444 (upstream timeout) or 502/503/504 (gateway errors)
-    if (resp.status === 444 || resp.status === 502 || resp.status === 503 || resp.status === 504) {
-      await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
-      continue;
+      // Retry on 444 (upstream timeout) or 502/503/504 (gateway errors)
+      if (resp.status === 444 || resp.status === 502 || resp.status === 503 || resp.status === 504) {
+        await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+        continue;
+      }
+
+      // 403 = Cloudflare challenge, try next profile
+      if (resp.status === 403) {
+        console.log(`[Miruro] Profile ${profile} got 403, trying next...`);
+        break;
+      }
+
+      // Non-retryable error
+      throw new Error(lastError);
     }
-
-    // Non-retryable error
-    throw new Error(lastError);
+    if (resp?.status === 200) break;
   }
 
-  if (resp.status !== 200) {
+  if (resp?.status !== 200) {
     throw new Error(lastError);
   }
 
