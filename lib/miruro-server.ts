@@ -96,6 +96,11 @@ function headersForProfile(profile: string): Record<string, string> {
 const BROWSER_PROFILES = ["chrome_131", "chrome_120", "chrome_110"];
 
 import { fetch as wreqFetch } from "wreq-js";
+import { CF_SOLVER_ENABLED, getCloudflareCookie } from "./cf-solver";
+
+function isCloudflareChallenge(status: number, text: string): boolean {
+  return status === 403 && text.toLowerCase().includes("just a moment");
+}
 
 async function pipeGet(
   path: string,
@@ -111,6 +116,7 @@ async function pipeGet(
   let resp: any;
   let lastError = "";
   let profileUsed = "";
+  let sawCloudflareChallenge = false;
 
   for (const profile of BROWSER_PROFILES) {
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -142,6 +148,7 @@ async function pipeGet(
 
       // 403 = Cloudflare challenge, try next profile
       if (resp.status === 403) {
+        if (isCloudflareChallenge(resp.status, text)) sawCloudflareChallenge = true;
         console.log(`[Miruro] Profile ${profile} got 403, trying next...`);
         break;
       }
@@ -150,6 +157,32 @@ async function pipeGet(
       throw new Error(lastError);
     }
     if (resp?.status === 200) break;
+  }
+
+  // Every TLS-spoofed profile got the Cloudflare JS interstitial, which no
+  // amount of retrying can pass. Last resort: solve it with a real headless
+  // browser (if enabled) and replay the request with its cookie.
+  if (resp?.status !== 200 && sawCloudflareChallenge && CF_SOLVER_ENABLED) {
+    const solved = await getCloudflareCookie();
+    if (solved) {
+      try {
+        const retryResp = await fetchFn(url, {
+          browser: "chrome_131" as any,
+          headers: {
+            ...headersForProfile("chrome_131"),
+            "User-Agent": solved.userAgent,
+            Cookie: solved.cookie,
+          },
+          timeout: 10000,
+        });
+        if (retryResp.status === 200) {
+          resp = retryResp;
+          console.log("[Miruro] Success after solving Cloudflare challenge");
+        }
+      } catch (e: any) {
+        lastError = `wreq-js error after CF solve: ${String(e)}`;
+      }
+    }
   }
 
   if (resp?.status !== 200) {

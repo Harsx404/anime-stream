@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "app/api/episodes/[anilistId]/route.ts": {
+      "memory": 2048,
+      "maxDuration": 60
+    },
+    "app/api/sources/route.ts": {
+      "memory": 2048,
+      "maxDuration": 60
+    }
+  }
+}

@@ -26,13 +26,20 @@ const streamingRewrites = isVercel
   : [];
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["wreq-js"],
+  serverExternalPackages: ["wreq-js", "@sparticuz/chromium", "puppeteer-core"],
   // wreq-js resolves its native .node binary with a dynamic require() at call time,
   // which Vercel's static file tracer can't follow — without this it's dropped from
   // the deployed function bundle and every request fails instantly with no network call.
+  // @sparticuz/chromium's brotli-compressed binaries are loaded the same dynamic way.
   outputFileTracingIncludes: {
-    "/api/episodes/[anilistId]": ["./node_modules/wreq-js/rust/*.node"],
-    "/api/sources": ["./node_modules/wreq-js/rust/*.node"],
+    "/api/episodes/[anilistId]": [
+      "./node_modules/wreq-js/rust/*.node",
+      "./node_modules/@sparticuz/chromium/bin/*",
+    ],
+    "/api/sources": [
+      "./node_modules/wreq-js/rust/*.node",
+      "./node_modules/@sparticuz/chromium/bin/*",
+    ],
   },
   images: {
     remotePatterns: [
