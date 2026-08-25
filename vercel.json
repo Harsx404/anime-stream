@@ -1,0 +1,28 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/bingebox/:path*",
+      "destination": "https://anime-stream-kcbs.onrender.com/api/bingebox/:path*"
+    },
+    {
+      "source": "/api/hls/:path*",
+      "destination": "https://anime-stream-kcbs.onrender.com/api/hls/:path*"
+    },
+    {
+      "source": "/api/skip-times",
+      "destination": "https://anime-stream-kcbs.onrender.com/api/skip-times"
+    },
+    {
+      "source": "/api/opensubtitles",
+      "destination": "https://anime-stream-kcbs.onrender.com/api/opensubtitles"
+    },
+    {
+      "source": "/api/subtitles/:path*",
+      "destination": "https://anime-stream-kcbs.onrender.com/api/subtitles/:path*"
+    },
+    {
+      "source": "/api/sub-proxy",
+      "destination": "https://anime-stream-kcbs.onrender.com/api/sub-proxy"
+    }
+  ]
+}
