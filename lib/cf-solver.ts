@@ -56,8 +56,18 @@ async function solve(): Promise<SolvedChallenge | null> {
 
   let browser: import("puppeteer-core").Browser | undefined;
   try {
+    // @sparticuz/chromium defaults to --single-process (needed to avoid a
+    // prctl sandbox crash on classic AWS Lambda). Last attempt hung forever
+    // on the challenge page with zero cookies ever set — not even
+    // Cloudflare's baseline __cf_bm — which points at the renderer not
+    // actually running the challenge script rather than failing it. Vercel's
+    // Fluid compute isn't classic Lambda, so try without it.
+    const args = chromium.args
+      .filter((a: string) => a !== "--single-process")
+      .concat("--disable-blink-features=AutomationControlled");
+
     browser = await puppeteer.launch({
-      args: [...chromium.args, "--disable-blink-features=AutomationControlled"],
+      args,
       executablePath: await chromium.executablePath(),
       headless: true,
     });
