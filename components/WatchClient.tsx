@@ -73,7 +73,21 @@ export default function WatchClient({ anilistId, episode, anime }: Props) {
   if (error) {
     return (
       <div style={{ maxWidth: 800, margin: "0 auto", padding: "64px 16px", textAlign: "center" }}>
-        <p style={{ fontSize: 18, color: "#f87171", marginBottom: 16 }}>Failed to load episodes: {error}</p>
+        <p style={{ fontSize: 18, color: "#f87171", marginBottom: 8 }}>Failed to load episodes: {error}</p>
+        <p style={{ fontSize: 14, color: "var(--text-muted)", marginBottom: 16 }}>
+          Try a different source below.
+        </p>
+        <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 24 }}>
+          {ALL_BACKENDS.map((b) => (
+            <button
+              key={b}
+              className={`server-tab${selectedBackend === b ? " is-active" : ""}`}
+              onClick={() => handleBackendChange(b)}
+            >
+              {BACKEND_LABELS[b]}
+            </button>
+          ))}
+        </div>
         <a href={`/anime/${anilistId}`} style={{ color: "#fff", textDecoration: "underline" }}>← Back to anime page</a>
       </div>
     );
