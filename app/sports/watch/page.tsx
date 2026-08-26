@@ -151,7 +151,7 @@ export default function SportsWatchPage() {
           ) : current ? (
             <iframe
               key={`${current.id}-${current.streamNo}`}
-              src={current.embedUrl}
+              src={`/embed${new URL(current.embedUrl).pathname.replace(/^\/embed/, "")}`}
               frameBorder={0}
               scrolling="no"
               allowFullScreen

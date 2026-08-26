@@ -3,7 +3,6 @@ import { dnsFetch } from "@/lib/dns-fix";
 export const dynamic = "force-dynamic";
 
 const PROXY_BASE = "/api/sports/embed?url=";
-const CDN_PROXY_BASE = "/api/sports/cdn/";
 const ALLOWED_HOSTS = ["embed.st", "streamed.pk", "strmd.b-cdn.net"];
 
 function isAllowedHost(hostname: string): boolean {
@@ -14,8 +13,14 @@ function buildInterceptScript(originalUrl: string) {
   return `<script>
 (function() {
   var PROXY = "${PROXY_BASE}";
-  var CDN_PROXY = "${CDN_PROXY_BASE}";
-  var HOSTS = ["embed.st", "streamed.pk", "strmd.b-cdn.net"];
+  // Deliberately NOT proxying strmd.b-cdn.net (the player CDN): its player
+  // bundle depends on relative-URL and dynamic import() resolution that
+  // proxying breaks in ways plain fetch/XHR interception can't fix (dynamic
+  // import() isn't interceptable this way at all). Loading it direct from
+  // the browser worked cleanly in testing; only the top-level embed.st
+  // document goes through this proxy, which is enough to route around an
+  // ISP block on the primary domain.
+  var HOSTS = ["embed.st", "streamed.pk"];
   var ORIG_URL = "${originalUrl}";
   var origParsed = new URL(ORIG_URL);
   var FAKE_ORIGIN = origParsed.origin;
@@ -43,30 +48,9 @@ function buildInterceptScript(originalUrl: string) {
   function proxyUrl(url) {
     if (!url) return url;
     if (url.indexOf(PROXY) === 0) return url;
-    if (url.indexOf(CDN_PROXY) === 0) return url;
-    // Some player scripts build absolute URLs by combining location.origin
-    // (which we spoof to embed.st for anti-embed checks) with a real path
-    // computed from their own script's true, already-proxied location. That
-    // produces a fake host with a real path pointing at our own proxy routes
-    // (e.g. https://embed.st/api/sports/cdn/...). Catch that before treating
-    // it as a genuine embed.st/streamed.pk URL: strip the fake origin and
-    // let it resolve same-origin, which is what it actually meant.
-    try {
-      var earlyCheck = new URL(url, FAKE_HREF);
-      if (earlyCheck.pathname.indexOf("/api/sports/") === 0) {
-        return earlyCheck.pathname + earlyCheck.search;
-      }
-    } catch(e) {}
     if (!shouldProxy(url)) return url;
     try {
       var abs = new URL(url, FAKE_HREF);
-      // strmd.b-cdn.net serves the player bundle, which resolves its own
-      // sub-resources relative to its own script URL. Mirror its path
-      // structure (instead of collapsing into a query param) so those
-      // relative fetches keep resolving correctly.
-      if (abs.hostname === "strmd.b-cdn.net" || abs.hostname.endsWith(".strmd.b-cdn.net")) {
-        return CDN_PROXY + abs.pathname.replace(/^\\//, "") + abs.search;
-      }
       return PROXY + encodeURIComponent(abs.href);
     } catch(e) { return url; }
   }
@@ -156,20 +140,14 @@ export async function GET(req: Request) {
         html = buildInterceptScript(embedUrl) + html;
       }
 
-      // strmd.b-cdn.net -> path-based proxy, so relative sub-resource fetches
-      // inside the player bundle (e.g. wasm/lock.js) keep resolving correctly.
-      html = html.replace(/(src|href)\s*=\s*"https?:\/\/(?:www\.)?strmd\.b-cdn\.net(\/[^"]*)"/gi, (match, attr, path) => {
-        return `${attr}="${CDN_PROXY_BASE}${path.replace(/^\//, "")}"`;
-      });
-
       html = html.replace(/(src|href)\s*=\s*"(https?:\/\/(?:www\.)?(?:embed\.st|streamed\.pk)\/[^"]*)"/gi, (match, attr, url) => {
         return `${attr}="${PROXY_BASE}${encodeURIComponent(url)}"`;
       });
 
       html = html.replace(/(src|href)\s*=\s*"(\/[^"]*)"/gi, (match, attr, path) => {
-        // Skip paths the passes above already proxied — otherwise this
+        // Skip paths the pass above already proxied — otherwise this
         // re-wraps them since a proxied path also starts with "/".
-        if (path.startsWith(PROXY_BASE) || path.startsWith(CDN_PROXY_BASE)) return match;
+        if (path.startsWith(PROXY_BASE)) return match;
         return `${attr}="${PROXY_BASE}${encodeURIComponent("https://embed.st" + path)}"`;
       });
 
