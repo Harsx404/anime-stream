@@ -4,17 +4,19 @@
 // serverless-sized headless Chromium to solve the challenge once, then hands
 // the resulting cf_clearance cookie back to wreq-js for the actual API call.
 //
-// On by default on Vercel — launching a browser is far heavier (memory,
-// cold-start time, and on Vercel's usage-based Fluid compute, real cost)
-// than a plain fetch, but it only fires after every TLS-spoofed profile has
-// already failed with a confirmed Cloudflare challenge, so normal requests
-// are unaffected. If usage/cost becomes a problem, set DISABLE_CF_SOLVER=1
-// to turn it back off without touching code. Only runs on Vercel
-// (process.env.VERCEL === "1") — Render's free tier (512MB RAM) is too
-// small to launch Chromium reliably.
+// DISABLED as of 2026-08-26. Tested twice against the real Miruro challenge
+// in production (with and without --single-process, plus webdriver/plugin
+// stealth patches) — both attempts produced the identical failure: the page
+// stays stuck showing "Just a moment..." with zero cookies ever set, not
+// even Cloudflare's baseline __cf_bm. That means the challenge subresource
+// script never runs to completion in this environment, not that it's
+// failing the challenge — a config tweak here won't fix that. Since it was
+// launching a full Chromium per blocked request for zero benefit, it's off
+// until there's an actual new hypothesis worth spending compute to test.
+// Re-enable with ENABLE_CF_SOLVER=1 once one exists.
 
 export const CF_SOLVER_ENABLED =
-  process.env.DISABLE_CF_SOLVER !== "1" && process.env.VERCEL === "1";
+  process.env.ENABLE_CF_SOLVER === "1" && process.env.VERCEL === "1";
 
 interface SolvedChallenge {
   cookie: string;
