@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 
 const ALLOWED_HOSTS = ["embed.st", "streamed.pk", "strmd.b-cdn.net"];
 const PROXY_BASE = "/api/sports/embed?url=";
+const CDN_PROXY_BASE = "/api/sports/cdn/";
 
 function isAllowedHost(hostname: string): boolean {
   return ALLOWED_HOSTS.some((h) => hostname === h || hostname.endsWith("." + h));
@@ -14,7 +15,8 @@ function buildInterceptScript(originalUrl: string) {
   return `<script>
 (function() {
   var PROXY = "${PROXY_BASE}";
-  var HOSTS = ["embed.st", "streamed.pk"];
+  var CDN_PROXY = "${CDN_PROXY_BASE}";
+  var HOSTS = ["embed.st", "streamed.pk", "strmd.b-cdn.net"];
   var FAKE_HREF = "${originalUrl}";
   var origParsed = new URL(FAKE_HREF);
 
@@ -33,6 +35,21 @@ function buildInterceptScript(originalUrl: string) {
   function proxyUrl(url) {
     if (!url) return url;
     if (url.indexOf(PROXY) === 0) return url;
+    if (url.indexOf(CDN_PROXY) === 0) return url;
+    // Some player scripts build absolute URLs by combining location.origin
+    // (spoofed to embed.st) with a real path computed from their own
+    // script's true, already-proxied location, producing a fake host with a
+    // real path pointing at our own proxy routes (e.g.
+    // https://embed.st/api/sports/cdn/...). Without this check the "same-
+    // origin API call" branch right below would wrongly treat it as a real
+    // embed.st API call and re-wrap it. Catch it first and let it resolve
+    // same-origin, which is what it actually meant.
+    try {
+      var earlyCheck = new URL(url, FAKE_HREF);
+      if (earlyCheck.pathname.indexOf("/api/sports/") === 0) {
+        return earlyCheck.pathname + earlyCheck.search;
+      }
+    } catch(e) {}
     if (!shouldProxy(url)) return url;
     try {
       var u = new URL(url, FAKE_HREF);
@@ -41,8 +58,14 @@ function buildInterceptScript(originalUrl: string) {
         var target = origParsed.origin + u.pathname + u.search;
         return PROXY + encodeURIComponent(target);
       }
-      var abs = new URL(url, FAKE_HREF).href;
-      return PROXY + encodeURIComponent(abs);
+      // strmd.b-cdn.net serves the player bundle, which resolves its own
+      // sub-resources relative to its own script URL. Mirror its path
+      // structure (instead of collapsing into a query param) so those
+      // relative fetches keep resolving correctly.
+      if (u.hostname === "strmd.b-cdn.net" || u.hostname.endsWith(".strmd.b-cdn.net")) {
+        return CDN_PROXY + u.pathname.replace(/^\\//, "") + u.search;
+      }
+      return PROXY + encodeURIComponent(u.href);
     } catch(e) { return url; }
   }
 
@@ -134,16 +157,32 @@ export async function GET(
     if (isHtml && contentType.includes("text/html")) {
       let html = await res.text();
 
+      // strmd.b-cdn.net -> path-based proxy, so relative sub-resource fetches
+      // inside the player bundle (e.g. wasm/lock.js) keep resolving correctly.
+      // Left unproxied entirely, those calls go straight from the user's browser
+      // and hit the same ISP-level block that blocks embed.st directly (VPN
+      // "fixes" it for the same reason) — proxying keeps that traffic on our
+      // server's unblocked egress instead.
+      html = html.replace(
+        /(src|href)\s*=\s*"https?:\/\/(?:www\.)?strmd\.b-cdn\.net(\/[^"]*)"/gi,
+        (match, attr, path) => `${attr}="${CDN_PROXY_BASE}${path.replace(/^\//, "")}"`,
+      );
+
       // Rewrite absolute URLs to embed.st/streamed.pk through the query-param proxy
       html = html.replace(
         /(src|href)\s*=\s*"(https?:\/\/(?:www\.)?(?:embed\.st|streamed\.pk)\/[^"]*)"/gi,
         (match, attr, url) => `${attr}="${PROXY_BASE}${encodeURIComponent(url)}"`,
       );
 
-      // Rewrite relative paths through the query-param proxy
+      // Rewrite relative paths through the query-param proxy. Skip paths the
+      // passes above already proxied — otherwise this re-wraps them since a
+      // proxied path also starts with "/".
       html = html.replace(
         /(src|href)\s*=\s*"(\/[^"]*)"/gi,
-        (match, attr, p) => `${attr}="${PROXY_BASE}${encodeURIComponent("https://embed.st" + p)}"`,
+        (match, attr, p) => {
+          if (p.startsWith(PROXY_BASE) || p.startsWith(CDN_PROXY_BASE)) return match;
+          return `${attr}="${PROXY_BASE}${encodeURIComponent("https://embed.st" + p)}"`;
+        },
       );
 
       // Inject intercept script AFTER URL rewriting so it doesn't get corrupted

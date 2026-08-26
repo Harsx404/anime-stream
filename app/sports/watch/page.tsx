@@ -151,10 +151,11 @@ export default function SportsWatchPage() {
           ) : current ? (
             <iframe
               key={`${current.id}-${current.streamNo}`}
-              src={`/embed${new URL(current.embedUrl).pathname.replace(/^\/embed/, "")}`}
+              src={current.embedUrl}
               frameBorder={0}
               scrolling="no"
               allowFullScreen
+              allow="encrypted-media; picture-in-picture;"
               style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none" }}
             />
           ) : null}
