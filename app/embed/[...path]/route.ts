@@ -10,6 +10,23 @@ function isAllowedHost(hostname: string): boolean {
   return ALLOWED_HOSTS.some((h) => hostname === h || hostname.endsWith("." + h));
 }
 
+// embed.st's own session/anti-bot cookie (set on this initial page load,
+// checked later e.g. on the /fetch endpoint) has to round-trip through us:
+// the browser only ever talks to our origin, never embed.st's real one.
+// Strip Domain so the cookie is stored against our proxy's host instead of
+// a host the browser never actually connects to (it'd otherwise be silently
+// dropped), and relay whatever the browser sends back to us on to embed.st.
+function relayCookiesToClient(upstream: Response, client: Headers) {
+  const setCookies = upstream.headers.getSetCookie?.() ?? [];
+  for (const cookie of setCookies) {
+    client.append("set-cookie", cookie.replace(/;\s*domain=[^;]*/i, ""));
+  }
+}
+
+function forwardedCookieHeader(req: Request): string | undefined {
+  return req.headers.get("cookie") ?? undefined;
+}
+
 function buildInterceptScript(originalUrl: string) {
   return `<script>
 (function() {
@@ -125,6 +142,8 @@ export async function GET(
       "accept-language": "en-US,en;q=0.9",
       referer: "https://streamed.pk/",
     };
+    const forwardedCookie = forwardedCookieHeader(req);
+    if (forwardedCookie) reqHeaders.cookie = forwardedCookie;
 
     const res = await dnsFetch(targetUrl, { headers: reqHeaders });
     const contentType =
@@ -167,24 +186,22 @@ export async function GET(
         html = script + html;
       }
 
-      return new Response(html, {
-        status: 200,
-        headers: {
-          "Content-Type": "text/html; charset=utf-8",
-          "Cache-Control": "no-store",
-        },
+      const htmlHeaders = new Headers({
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-store",
       });
+      relayCookiesToClient(res, htmlHeaders);
+      return new Response(html, { status: 200, headers: htmlHeaders });
     }
 
     const body = await res.arrayBuffer();
-    return new Response(body, {
-      status: 200,
-      headers: {
-        "Content-Type": contentType,
-        "Cache-Control": "no-store",
-        "Access-Control-Allow-Origin": "*",
-      },
+    const binHeaders = new Headers({
+      "Content-Type": contentType,
+      "Cache-Control": "no-store",
+      "Access-Control-Allow-Origin": "*",
     });
+    relayCookiesToClient(res, binHeaders);
+    return new Response(body, { status: 200, headers: binHeaders });
   } catch (e) {
     return new Response(
       `Failed to load embed: ${e instanceof Error ? e.message : "Unknown error"}`,

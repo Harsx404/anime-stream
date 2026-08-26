@@ -74,10 +74,19 @@ function doRequest(parsed: URL, ip: string, init?: RequestInit & { next?: { reva
       res.on("data", (chunk: Buffer) => chunks.push(chunk));
       res.on("end", () => {
         const body = Buffer.concat(chunks);
-        const cleanHeaders: Record<string, string> = {};
+        const cleanHeaders = new Headers();
         for (const [key, value] of Object.entries(res.headers)) {
           if (key === "content-encoding" || key === "content-length" || key === "transfer-encoding") continue;
-          if (typeof value === "string") cleanHeaders[key] = value;
+          // Node exposes set-cookie as an array (never joined into one
+          // string, since folding multiple cookies onto one line isn't
+          // valid). Headers.append() keeps each entry distinct instead of
+          // Headers.set() overwriting; a plain `typeof value === "string"`
+          // check (the old code) silently drops the whole array.
+          if (Array.isArray(value)) {
+            for (const v of value) cleanHeaders.append(key, v);
+          } else if (typeof value === "string") {
+            cleanHeaders.set(key, value);
+          }
         }
         resolve(
           new Response(body, {

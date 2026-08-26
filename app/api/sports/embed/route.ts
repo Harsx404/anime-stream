@@ -9,6 +9,23 @@ function isAllowedHost(hostname: string): boolean {
   return ALLOWED_HOSTS.some((h) => hostname === h || hostname.endsWith("." + h));
 }
 
+// embed.st's own session/anti-bot cookie (set on initial page load, checked
+// on later calls like the /fetch endpoint) has to round-trip through us:
+// the browser only ever talks to our origin, never embed.st's real one.
+// Strip Domain so the cookie is stored against our proxy's host instead of
+// a host the browser never actually connects to (it'd otherwise be silently
+// dropped), and relay whatever the browser sends back to us on to embed.st.
+function relayCookiesToClient(upstream: Response, client: Headers) {
+  const setCookies = upstream.headers.getSetCookie?.() ?? [];
+  for (const cookie of setCookies) {
+    client.append("set-cookie", cookie.replace(/;\s*domain=[^;]*/i, ""));
+  }
+}
+
+function forwardedCookieHeader(req: Request): string | undefined {
+  return req.headers.get("cookie") ?? undefined;
+}
+
 function buildInterceptScript(originalUrl: string) {
   return `<script>
 (function() {
@@ -121,8 +138,13 @@ export async function GET(req: Request) {
     const reqHeaders: Record<string, string> = {
       accept: isHtml ? "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" : "*/*",
       "accept-language": "en-US,en;q=0.9",
-      referer: "https://streamed.pk/",
+      // Same-origin referer, not a hardcoded cross-site one — a request to
+      // embed.st claiming to be referred by streamed.pk (or vice versa)
+      // looks exactly like the kind of mismatch a same-origin check flags.
+      referer: `${parsed.protocol}//${parsed.hostname}/`,
     };
+    const forwardedCookie = forwardedCookieHeader(req);
+    if (forwardedCookie) reqHeaders.cookie = forwardedCookie;
 
     const res = await dnsFetch(embedUrl, { headers: reqHeaders });
     const contentType = res.headers.get("content-type") || (isHtml ? "text/html" : isJs ? "application/javascript" : isCss ? "text/css" : "application/octet-stream");
@@ -151,21 +173,19 @@ export async function GET(req: Request) {
         return `${attr}="${PROXY_BASE}${encodeURIComponent("https://embed.st" + path)}"`;
       });
 
-      return new Response(html, {
-        status: 200,
-        headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
-      });
+      const htmlHeaders = new Headers({ "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
+      relayCookiesToClient(res, htmlHeaders);
+      return new Response(html, { status: 200, headers: htmlHeaders });
     }
 
     const body = await res.arrayBuffer();
-    return new Response(body, {
-      status: 200,
-      headers: {
-        "Content-Type": contentType,
-        "Cache-Control": "no-store",
-        "Access-Control-Allow-Origin": "*",
-      },
+    const binHeaders = new Headers({
+      "Content-Type": contentType,
+      "Cache-Control": "no-store",
+      "Access-Control-Allow-Origin": "*",
     });
+    relayCookiesToClient(res, binHeaders);
+    return new Response(body, { status: 200, headers: binHeaders });
   } catch (e) {
     return new Response(
       `Failed to load embed: ${e instanceof Error ? e.message : "Unknown error"}`,
@@ -195,10 +215,13 @@ export async function POST(req: Request) {
     const reqHeaders: Record<string, string> = {
       accept: "*/*",
       "accept-language": "en-US,en;q=0.9",
-      referer: "https://streamed.pk/",
+      referer: `${parsed.protocol}//${parsed.hostname}/`,
+      origin: `${parsed.protocol}//${parsed.hostname}`,
     };
     const incomingContentType = req.headers.get("content-type");
     if (incomingContentType) reqHeaders["content-type"] = incomingContentType;
+    const forwardedCookie = forwardedCookieHeader(req);
+    if (forwardedCookie) reqHeaders.cookie = forwardedCookie;
 
     const body = await req.arrayBuffer();
     const res = await dnsFetch(embedUrl, {
@@ -209,14 +232,13 @@ export async function POST(req: Request) {
 
     const contentType = res.headers.get("content-type") || "application/octet-stream";
     const responseBody = await res.arrayBuffer();
-    return new Response(responseBody, {
-      status: res.status,
-      headers: {
-        "Content-Type": contentType,
-        "Cache-Control": "no-store",
-        "Access-Control-Allow-Origin": "*",
-      },
+    const outHeaders = new Headers({
+      "Content-Type": contentType,
+      "Cache-Control": "no-store",
+      "Access-Control-Allow-Origin": "*",
     });
+    relayCookiesToClient(res, outHeaders);
+    return new Response(responseBody, { status: res.status, headers: outHeaders });
   } catch (e) {
     return new Response(
       `Failed to proxy embed POST: ${e instanceof Error ? e.message : "Unknown error"}`,
