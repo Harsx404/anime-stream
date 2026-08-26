@@ -163,3 +163,54 @@ export async function GET(req: Request) {
     );
   }
 }
+
+// The intercept script rewrites same-origin fetch()/XHR calls onto this
+// proxy but preserves the original method, so player JS that POSTs (e.g.
+// a heartbeat/token endpoint like embed.st/fetch) needs this too — GET-only
+// meant every such call 405'd.
+export async function POST(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const embedUrl = searchParams.get("url");
+
+  if (!embedUrl) {
+    return new Response("Missing url param", { status: 400 });
+  }
+
+  try {
+    const parsed = new URL(embedUrl);
+    if (!isAllowedHost(parsed.hostname)) {
+      return new Response("Host not allowed: " + parsed.hostname, { status: 403 });
+    }
+
+    const reqHeaders: Record<string, string> = {
+      accept: "*/*",
+      "accept-language": "en-US,en;q=0.9",
+      referer: "https://streamed.pk/",
+    };
+    const incomingContentType = req.headers.get("content-type");
+    if (incomingContentType) reqHeaders["content-type"] = incomingContentType;
+
+    const body = await req.arrayBuffer();
+    const res = await dnsFetch(embedUrl, {
+      method: "POST",
+      headers: reqHeaders,
+      body: body.byteLength > 0 ? body : undefined,
+    });
+
+    const contentType = res.headers.get("content-type") || "application/octet-stream";
+    const responseBody = await res.arrayBuffer();
+    return new Response(responseBody, {
+      status: res.status,
+      headers: {
+        "Content-Type": contentType,
+        "Cache-Control": "no-store",
+        "Access-Control-Allow-Origin": "*",
+      },
+    });
+  } catch (e) {
+    return new Response(
+      `Failed to proxy embed POST: ${e instanceof Error ? e.message : "Unknown error"}`,
+      { status: 502 },
+    );
+  }
+}
