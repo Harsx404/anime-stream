@@ -151,7 +151,7 @@ export default function SportsWatchPage() {
           ) : current ? (
             <iframe
               key={`${current.id}-${current.streamNo}`}
-              src={`/embed${new URL(current.embedUrl).pathname.replace(/^\/embed/, "")}`}
+              src={current.embedUrl}
               frameBorder={0}
               scrolling="no"
               allowFullScreen
@@ -160,6 +160,12 @@ export default function SportsWatchPage() {
             />
           ) : null}
         </div>
+
+        {!loading && !error && current && (
+          <p style={{ marginTop: 12, fontSize: 13, color: "rgba(255,255,255,0.5)" }}>
+            Stream not loading? Some ISPs block this source directly — try connecting through a VPN.
+          </p>
+        )}
 
         {/* Stream selector */}
         {!loading && !error && streams.length > 0 && (
